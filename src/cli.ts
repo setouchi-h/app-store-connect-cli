@@ -6,7 +6,6 @@ import { registerAppsCommand } from "./commands/apps.js";
 import { registerAuthCommand } from "./commands/auth.js";
 import { createCliContext, type CliDependencies } from "./commands/context.js";
 import { registerReportsCommand } from "./commands/reports.js";
-import { registerSummarizeCommand } from "./commands/summarize.js";
 import { formatCliError, normalizeError } from "./utils/errors.js";
 
 export const VERSION = "0.1.0";
@@ -25,7 +24,6 @@ export function createCli(dependencies: CliDependencies = {}): Command {
   registerAppsCommand(program, context);
   registerAuthCommand(program, context);
   registerReportsCommand(program, context);
-  registerSummarizeCommand(program, context);
   configureCommandTree(program, context);
 
   return program;

@@ -103,13 +103,14 @@ describe("asc CLI", () => {
     });
   });
 
-  it("summarizes an empty local DuckDB database without credentials", async () => {
+  it("summarizes an empty local DuckDB database through reports without credentials", async () => {
     const directory = await mkdtemp(join(tmpdir(), "asc-test-"));
     const io = createWriters();
     const exitCode = await runCli(
       [
         "node",
         "asc",
+        "reports",
         "summarize",
         "--from",
         "2026-01-01",

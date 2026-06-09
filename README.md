@@ -42,7 +42,7 @@ pnpm dev -- apps list --json
 pnpm dev -- auth token --json
 pnpm dev -- reports list --json
 pnpm dev -- reports fetch --app-id 1234567890 --from 2026-01-01 --to 2026-01-31 --json
-pnpm dev -- summarize --from 2026-01-01 --to 2026-01-31 --json
+pnpm dev -- reports summarize --from 2026-01-01 --to 2026-01-31 --json
 ```
 
 `reports fetch` downloads daily Sales and Trends summary reports, parses TSV/gzip content, stores normalized rows in DuckDB, and keeps raw TSV copies in `reports/`.

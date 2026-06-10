@@ -1,5 +1,7 @@
 # asc コマンドリファレンス
 
+日本語 | [English](./commands.en.md)
+
 ## CLI 概要
 
 `asc` は App Store Connect 分析 CLI（App Store Connect analytics CLI）です。App Store Connect API を利用して、アプリ一覧の取得・API 認証用 JWT の生成・Sales and Trends レポートのダウンロードを行います。

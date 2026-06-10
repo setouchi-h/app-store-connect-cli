@@ -12,7 +12,8 @@ export const AscEnvSchema = z.object({
   ASC_PRIVATE_KEY: OptionalEnvString,
   ASC_VENDOR_NUMBER: OptionalEnvString,
   ASC_API_BASE_URL: OptionalEnvString,
-  ASC_REPORTS_DIR: OptionalEnvString
+  ASC_REPORTS_DIR: OptionalEnvString,
+  ASC_APP_ID: OptionalEnvString
 });
 
 export type AscEnv = z.infer<typeof AscEnvSchema>;

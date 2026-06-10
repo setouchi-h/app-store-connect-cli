@@ -70,6 +70,42 @@ export class AppStoreConnectClient {
     return Buffer.from(await response.arrayBuffer());
   }
 
+  async getJson<T>(pathname: string, query: Record<string, string> = {}): Promise<T> {
+    return this.requestJson<T>(pathname, query);
+  }
+
+  async postJson<T>(pathname: string, body: unknown): Promise<T> {
+    const response = await this.request(pathname, {}, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    return (await response.json()) as T;
+  }
+
+  async downloadFromUrl(url: string): Promise<Buffer> {
+    const response = await this.fetchImpl(url);
+
+    if (!response.ok) {
+      throw new CliError(`Report file download failed with HTTP ${response.status}.`, {
+        code: "ASC_FILE_DOWNLOAD_FAILED",
+        exitCode: response.status >= 500 ? 1 : 2,
+        details: {
+          status: response.status,
+          statusText: response.statusText,
+          url,
+          body: await safeResponseText(response)
+        }
+      });
+    }
+
+    return Buffer.from(await response.arrayBuffer());
+  }
+
   private async requestJson<T>(pathname: string, query: Record<string, string>): Promise<T> {
     const response = await this.request(pathname, query, {
       headers: {

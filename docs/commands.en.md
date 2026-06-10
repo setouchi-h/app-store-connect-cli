@@ -4,7 +4,7 @@
 
 ## CLI Overview
 
-`asc` is an App Store Connect analytics CLI. It uses the App Store Connect API to list apps, generate API authentication JWTs, and download Sales and Trends reports.
+`asc` is an App Store Connect analytics CLI. It uses the App Store Connect API to list apps, generate API authentication JWTs, download Sales and Trends reports, and download App Analytics reports (Analytics Reports API).
 
 - **Command name**: `asc` (registered as `bin` in `package.json`; during development, run `pnpm dev -- <args>` to execute `tsx src/cli.ts`)
 - **Version**: `0.1.0`
@@ -25,6 +25,10 @@
 | [`asc auth token`](#asc-auth-token) | Generate a JWT for the App Store Connect API |
 | [`asc reports list`](#asc-reports-list) | List supported report definitions |
 | [`asc reports fetch`](#asc-reports-fetch) | Download raw Sales and Trends reports |
+| [`asc analytics request ensure`](#asc-analytics-request-ensure) | Create an App Analytics report request (idempotent) |
+| [`asc analytics request list`](#asc-analytics-request-list) | List analytics report requests |
+| [`asc analytics reports`](#asc-analytics-reports) | List available App Analytics reports |
+| [`asc analytics fetch`](#asc-analytics-fetch) | Download App Analytics report files |
 
 ---
 
@@ -179,6 +183,180 @@ asc reports fetch --from 2026-06-01 --to 2026-06-03
 
 ---
 
+## asc analytics request ensure
+
+### Description
+
+Creates an App Analytics (Analytics Reports API) report generation request (`POST /v1/analyticsReportRequests`). If an **active** request with the same `accessType` already exists, it returns the existing one instead of creating a duplicate — the command is **idempotent** and safe to run repeatedly. A request stopped with `stoppedDueToInactivity` is not treated as existing; a new request is created instead (per Apple's spec, a stopped request never resumes — a new one is required).
+
+Registering `ONGOING` (the default) makes Apple generate daily, weekly, and monthly reports continuously (the first data can take up to 48 hours). Use `--access-type ONE_TIME_SNAPSHOT` to generate all available historical data once.
+
+### Options
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `--app <appId>` | - (required unless `ASC_APP_ID` is set) | App Store Connect app ID. Look it up with `asc apps list` |
+| `--access-type <type>` | - | `ONGOING` (default) or `ONE_TIME_SNAPSHOT` |
+| `--json` | - | Switch error output to JSON (results are always JSON) |
+
+### Example
+
+```sh
+asc analytics request ensure --app 1234567890
+```
+
+### Output Example (JSON)
+
+```json
+{
+  "request": {
+    "id": "f8f99a6a-0000-0000-0000-000000000000",
+    "accessType": "ONGOING",
+    "stoppedDueToInactivity": false
+  },
+  "created": true
+}
+```
+
+---
+
+## asc analytics request list
+
+### Description
+
+Lists the report generation requests associated with an app (`GET /v1/apps/{id}/analyticsReportRequests`).
+
+When `stoppedDueToInactivity` is `true`, Apple has stopped generating reports because they were not downloaded for an extended period. Re-run `asc analytics request ensure` to recover.
+
+### Options
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `--app <appId>` | - (required unless `ASC_APP_ID` is set) | App Store Connect app ID |
+| `--json` | - | Switch error output to JSON (results are always JSON) |
+
+### Example
+
+```sh
+asc analytics request list --app 1234567890
+```
+
+### Output Example (JSON)
+
+```json
+{
+  "requests": [
+    {
+      "id": "f8f99a6a-0000-0000-0000-000000000000",
+      "accessType": "ONGOING",
+      "stoppedDueToInactivity": false
+    }
+  ]
+}
+```
+
+---
+
+## asc analytics reports
+
+### Description
+
+Lists the reports available for the report request (`GET /v1/analyticsReportRequests/{id}/reports`), including names and categories. Use this command to find the exact report name to pass to `asc analytics fetch --report`. When multiple requests exist, an active (non-stopped) one is preferred.
+
+If no request with the given `--access-type` exists, the command fails with `ASC_ANALYTICS_REQUEST_NOT_FOUND` (exit code 2). Run `asc analytics request ensure` first.
+
+### Options
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `--app <appId>` | - (required unless `ASC_APP_ID` is set) | App Store Connect app ID |
+| `--access-type <type>` | - | Which request to resolve: `ONGOING` (default) or `ONE_TIME_SNAPSHOT` |
+| `--category <category>` | - | Filter by category (e.g. `APP_STORE_ENGAGEMENT`) |
+| `--json` | - | Switch error output to JSON (results are always JSON) |
+
+### Example
+
+```sh
+asc analytics reports --app 1234567890
+```
+
+### Output Example (JSON)
+
+```json
+{
+  "requestId": "f8f99a6a-0000-0000-0000-000000000000",
+  "accessType": "ONGOING",
+  "stoppedDueToInactivity": false,
+  "reports": [
+    {
+      "id": "r-1",
+      "name": "App Store Discovery and Engagement",
+      "category": "APP_STORE_ENGAGEMENT"
+    },
+    {
+      "id": "r-2",
+      "name": "App Downloads Standard",
+      "category": "APP_USAGE"
+    }
+  ]
+}
+```
+
+---
+
+## asc analytics fetch
+
+### Description
+
+Filters the report's instances (one generated artifact per processing date) by date range and downloads each instance's segment files into `ASC_REPORTS_DIR` (default `./reports`). Internally it resolves the request for the given `--access-type` (preferring an active one), matches the report by name, lists instances (`filter[granularity]`), reads segment URLs, and downloads the files. Historical data generated by a `ONE_TIME_SNAPSHOT` request is fetched with `--access-type ONE_TIME_SNAPSHOT`.
+
+Gzip-compressed segments are **decompressed** before saving. File names follow `analytics-<report-name-slug>-<granularity>-<processing-date>-<index>.tsv` (e.g. `analytics-app-store-discovery-and-engagement-daily-2026-06-01-1.tsv`).
+
+If no instances fall within the range, the command exits successfully with `files: []` (and a warning on stderr). If the report name does not match, it fails with `ASC_ANALYTICS_REPORT_NOT_FOUND` and includes the available report names in `details.available`.
+
+### Options
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `--app <appId>` | - (required unless `ASC_APP_ID` is set) | App Store Connect app ID |
+| `--report <name>` | **Required** | Report name (e.g. `"App Store Discovery and Engagement"`). See `asc analytics reports` |
+| `--access-type <type>` | - | Which request to resolve: `ONGOING` (default) or `ONE_TIME_SNAPSHOT` |
+| `--granularity <granularity>` | - | `DAILY` (default) / `WEEKLY` / `MONTHLY` |
+| `--from <YYYY-MM-DD>` | **Required** | Start date (lower bound of processingDate) |
+| `--to <YYYY-MM-DD>` | **Required** | End date. Must be on or after `--from` |
+| `--json` | - | Switch error output to JSON (results are always JSON) |
+
+### Example
+
+```sh
+asc analytics fetch --app 1234567890 \
+  --report "App Store Discovery and Engagement" \
+  --from 2026-06-01 --to 2026-06-07
+```
+
+### Output Example (JSON)
+
+```json
+{
+  "report": "App Store Discovery and Engagement",
+  "category": "APP_STORE_ENGAGEMENT",
+  "granularity": "DAILY",
+  "from": "2026-06-01",
+  "to": "2026-06-07",
+  "instances": 7,
+  "stoppedDueToInactivity": false,
+  "files": [
+    {
+      "date": "2026-06-01",
+      "path": "reports/analytics-app-store-discovery-and-engagement-daily-2026-06-01-1.tsv",
+      "bytes": 20480
+    }
+  ]
+}
+```
+
+---
+
 ## Environment Variables
 
 See `.env.example` for a sample configuration. Empty strings are treated as unset.
@@ -190,10 +368,11 @@ See `.env.example` for a sample configuration. Empty strings are treated as unse
 | `ASC_PRIVATE_KEY_PATH` | Required (either this or `ASC_PRIVATE_KEY`) | `apps list` / `auth token` / `reports fetch` | Path to the private key (`.p8`) file |
 | `ASC_PRIVATE_KEY` | Required (either this or `ASC_PRIVATE_KEY_PATH`) | `apps list` / `auth token` / `reports fetch` | Private key contents (PKCS#8 PEM string). Takes precedence when both are set |
 | `ASC_VENDOR_NUMBER` | Required (reports only) | `reports fetch` | Vendor Number for Sales and Trends reports |
-| `ASC_API_BASE_URL` | Optional | `apps list` / `auth token` / `reports fetch` | Base URL of the API. Default `https://api.appstoreconnect.apple.com` |
-| `ASC_REPORTS_DIR` | Optional | `reports fetch` | Directory where reports are saved. Default `./reports` |
+| `ASC_API_BASE_URL` | Optional | `apps list` / `auth token` / `reports fetch` / `analytics *` | Base URL of the API. Default `https://api.appstoreconnect.apple.com` |
+| `ASC_REPORTS_DIR` | Optional | `reports fetch` / `analytics fetch` | Directory where reports are saved. Default `./reports` |
+| `ASC_APP_ID` | Optional | `analytics *` | Default app ID used when `--app` is omitted |
 
-`reports list` requires no environment variables.
+The authentication variables (`ASC_ISSUER_ID` / `ASC_KEY_ID` / private key) are also required by the `analytics` commands. `reports list` requires no environment variables.
 
 ---
 
@@ -205,7 +384,7 @@ See `.env.example` for a sample configuration. Empty strings are treated as unse
   - With `--json`: `{"ok":false,"error":{"code":"...","message":"...","details":...}}`
 - **Exit codes**:
   - `0`: success
-  - `2`: **missing configuration** (missing auth environment variables = `ASC_AUTH_NOT_CONFIGURED`, missing `ASC_VENDOR_NUMBER` = `ASC_REPORTS_NOT_CONFIGURED`), input validation errors (`VALIDATION_FAILED`), and API 4xx errors
+  - `2`: **missing configuration** (missing auth environment variables = `ASC_AUTH_NOT_CONFIGURED`, missing `ASC_VENDOR_NUMBER` = `ASC_REPORTS_NOT_CONFIGURED`, missing app ID = `ASC_APP_ID_REQUIRED`), input validation errors (`VALIDATION_FAILED`), missing prerequisites (no ONGOING request = `ASC_ANALYTICS_REQUEST_NOT_FOUND`, unknown report name = `ASC_ANALYTICS_REPORT_NOT_FOUND`), and API 4xx errors
   - `1`: API 5xx errors and other unexpected errors
 
 ### Error Example for Missing Configuration (exit code 2)

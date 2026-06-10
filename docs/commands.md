@@ -4,7 +4,7 @@
 
 ## CLI 概要
 
-`asc` は App Store Connect 分析 CLI（App Store Connect analytics CLI）です。App Store Connect API を利用して、アプリ一覧の取得・API 認証用 JWT の生成・Sales and Trends レポートのダウンロードを行います。
+`asc` は App Store Connect 分析 CLI（App Store Connect analytics CLI）です。App Store Connect API を利用して、アプリ一覧の取得・API 認証用 JWT の生成・Sales and Trends レポートのダウンロード・App Analytics レポート（Analytics Reports API）のダウンロードを行います。
 
 - **コマンド名**: `asc`（`package.json` の `bin` として登録。開発時は `pnpm dev -- <args>` で `tsx src/cli.ts` を実行）
 - **バージョン**: `0.1.0`
@@ -25,6 +25,10 @@
 | [`asc auth token`](#asc-auth-token) | App Store Connect API 用の JWT を生成する |
 | [`asc reports list`](#asc-reports-list) | サポートしているレポート定義の一覧を表示する |
 | [`asc reports fetch`](#asc-reports-fetch) | Sales and Trends レポート（raw）をダウンロードする |
+| [`asc analytics request ensure`](#asc-analytics-request-ensure) | App Analytics のレポート生成リクエストを作成する（冪等） |
+| [`asc analytics request list`](#asc-analytics-request-list) | レポート生成リクエストの一覧を取得する |
+| [`asc analytics reports`](#asc-analytics-reports) | 利用可能な App Analytics レポートの一覧を取得する |
+| [`asc analytics fetch`](#asc-analytics-fetch) | App Analytics レポートのファイルをダウンロードする |
 
 ---
 
@@ -179,6 +183,180 @@ asc reports fetch --from 2026-06-01 --to 2026-06-03
 
 ---
 
+## asc analytics request ensure
+
+### 説明
+
+App Analytics（Analytics Reports API）のレポート生成リクエストを作成します（`POST /v1/analyticsReportRequests`）。同じ `accessType` の**アクティブな**リクエストが既に存在する場合は作成せず既存のものを返す**冪等**なコマンドで、何度実行しても安全です。`stoppedDueToInactivity` で停止したリクエストは既存とみなさず、新しいリクエストを作成します（Apple の仕様では停止したリクエストは再開できず、新規作成が必要なため）。
+
+`ONGOING`（デフォルト）を登録すると、Apple が日次・週次・月次のレポートを継続的に生成します（初回のデータ生成まで最大 48 時間）。過去の履歴データを一括生成したい場合は `--access-type ONE_TIME_SNAPSHOT` を使用します。
+
+### オプション
+
+| オプション | 必須 | 説明 |
+| --- | --- | --- |
+| `--app <appId>` | -（`ASC_APP_ID` 未設定時は必須） | 対象アプリの App Store Connect ID。`asc apps list` で確認できます |
+| `--access-type <type>` | - | `ONGOING`（デフォルト）または `ONE_TIME_SNAPSHOT` |
+| `--json` | - | エラー出力を JSON 形式にする（結果は常に JSON） |
+
+### 実行例
+
+```sh
+asc analytics request ensure --app 1234567890
+```
+
+### 出力例（JSON）
+
+```json
+{
+  "request": {
+    "id": "f8f99a6a-0000-0000-0000-000000000000",
+    "accessType": "ONGOING",
+    "stoppedDueToInactivity": false
+  },
+  "created": true
+}
+```
+
+---
+
+## asc analytics request list
+
+### 説明
+
+アプリに紐づくレポート生成リクエストの一覧を取得します（`GET /v1/apps/{id}/analyticsReportRequests`）。
+
+`stoppedDueToInactivity` が `true` の場合、レポートが長期間ダウンロードされなかったため Apple が生成を停止しています。`asc analytics request ensure` の再実行で復旧できます。
+
+### オプション
+
+| オプション | 必須 | 説明 |
+| --- | --- | --- |
+| `--app <appId>` | -（`ASC_APP_ID` 未設定時は必須） | 対象アプリの App Store Connect ID |
+| `--json` | - | エラー出力を JSON 形式にする（結果は常に JSON） |
+
+### 実行例
+
+```sh
+asc analytics request list --app 1234567890
+```
+
+### 出力例（JSON）
+
+```json
+{
+  "requests": [
+    {
+      "id": "f8f99a6a-0000-0000-0000-000000000000",
+      "accessType": "ONGOING",
+      "stoppedDueToInactivity": false
+    }
+  ]
+}
+```
+
+---
+
+## asc analytics reports
+
+### 説明
+
+レポート生成リクエストで利用可能なレポートの一覧（名前・カテゴリ）を取得します（`GET /v1/analyticsReportRequests/{id}/reports`）。`asc analytics fetch` の `--report` に渡す正確なレポート名はこのコマンドで確認します。複数のリクエストが存在する場合はアクティブな（停止していない）ものを優先します。
+
+指定した `--access-type` のリクエストが存在しない場合は `ASC_ANALYTICS_REQUEST_NOT_FOUND`（exit code 2）になります。先に `asc analytics request ensure` を実行してください。
+
+### オプション
+
+| オプション | 必須 | 説明 |
+| --- | --- | --- |
+| `--app <appId>` | -（`ASC_APP_ID` 未設定時は必須） | 対象アプリの App Store Connect ID |
+| `--access-type <type>` | - | 参照するリクエストの種類。`ONGOING`（デフォルト）または `ONE_TIME_SNAPSHOT` |
+| `--category <category>` | - | カテゴリで絞り込み（例: `APP_STORE_ENGAGEMENT`） |
+| `--json` | - | エラー出力を JSON 形式にする（結果は常に JSON） |
+
+### 実行例
+
+```sh
+asc analytics reports --app 1234567890
+```
+
+### 出力例（JSON）
+
+```json
+{
+  "requestId": "f8f99a6a-0000-0000-0000-000000000000",
+  "accessType": "ONGOING",
+  "stoppedDueToInactivity": false,
+  "reports": [
+    {
+      "id": "r-1",
+      "name": "App Store Discovery and Engagement",
+      "category": "APP_STORE_ENGAGEMENT"
+    },
+    {
+      "id": "r-2",
+      "name": "App Downloads Standard",
+      "category": "APP_USAGE"
+    }
+  ]
+}
+```
+
+---
+
+## asc analytics fetch
+
+### 説明
+
+指定したレポートのインスタンス（日付ごとの生成物）を日付範囲で絞り込み、各インスタンスのセグメントファイルをダウンロードして `ASC_REPORTS_DIR`（デフォルト `./reports`）配下に保存します。内部では「`--access-type` のリクエスト解決（アクティブ優先） → レポート名の照合 → インスタンス一覧（`filter[granularity]`）→ セグメント URL の取得 → ダウンロード」を順に実行します。`ONE_TIME_SNAPSHOT` で生成した履歴データは `--access-type ONE_TIME_SNAPSHOT` で取得します。
+
+gzip 圧縮されたセグメントは**解凍して**保存します。ファイル名は `analytics-<レポート名スラッグ>-<granularity>-<処理日>-<連番>.tsv` です（例: `analytics-app-store-discovery-and-engagement-daily-2026-06-01-1.tsv`）。
+
+日付範囲内にインスタンスが 1 件もない場合はエラーにならず、`files: []` で正常終了します（stderr に警告を出力）。レポート名が見つからない場合は、利用可能なレポート名の一覧を `details.available` に含むエラー（`ASC_ANALYTICS_REPORT_NOT_FOUND`）になります。
+
+### オプション
+
+| オプション | 必須 | 説明 |
+| --- | --- | --- |
+| `--app <appId>` | -（`ASC_APP_ID` 未設定時は必須） | 対象アプリの App Store Connect ID |
+| `--report <name>` | **必須** | レポート名（例: `"App Store Discovery and Engagement"`）。`asc analytics reports` で確認 |
+| `--access-type <type>` | - | 参照するリクエストの種類。`ONGOING`（デフォルト）または `ONE_TIME_SNAPSHOT` |
+| `--granularity <granularity>` | - | `DAILY`（デフォルト）/ `WEEKLY` / `MONTHLY` |
+| `--from <YYYY-MM-DD>` | **必須** | 取得開始日（processingDate の下限） |
+| `--to <YYYY-MM-DD>` | **必須** | 取得終了日。`--from` 以降の日付であること |
+| `--json` | - | エラー出力を JSON 形式にする（結果は常に JSON） |
+
+### 実行例
+
+```sh
+asc analytics fetch --app 1234567890 \
+  --report "App Store Discovery and Engagement" \
+  --from 2026-06-01 --to 2026-06-07
+```
+
+### 出力例（JSON）
+
+```json
+{
+  "report": "App Store Discovery and Engagement",
+  "category": "APP_STORE_ENGAGEMENT",
+  "granularity": "DAILY",
+  "from": "2026-06-01",
+  "to": "2026-06-07",
+  "instances": 7,
+  "stoppedDueToInactivity": false,
+  "files": [
+    {
+      "date": "2026-06-01",
+      "path": "reports/analytics-app-store-discovery-and-engagement-daily-2026-06-01-1.tsv",
+      "bytes": 20480
+    }
+  ]
+}
+```
+
+---
+
 ## 環境変数
 
 設定例は `.env.example` を参照してください。空文字列を設定した場合は未設定として扱われます。
@@ -190,10 +368,11 @@ asc reports fetch --from 2026-06-01 --to 2026-06-03
 | `ASC_PRIVATE_KEY_PATH` | 必須（`ASC_PRIVATE_KEY` とどちらか一方） | `apps list` / `auth token` / `reports fetch` | 秘密鍵（`.p8`）ファイルへのパス |
 | `ASC_PRIVATE_KEY` | 必須（`ASC_PRIVATE_KEY_PATH` とどちらか一方） | `apps list` / `auth token` / `reports fetch` | 秘密鍵の内容（PKCS#8 PEM 文字列）。`ASC_PRIVATE_KEY` が設定されている場合はこちらが優先 |
 | `ASC_VENDOR_NUMBER` | 必須（reports のみ） | `reports fetch` | Sales and Trends レポートの Vendor Number |
-| `ASC_API_BASE_URL` | 任意 | `apps list` / `auth token` / `reports fetch` | API のベース URL。デフォルト `https://api.appstoreconnect.apple.com` |
-| `ASC_REPORTS_DIR` | 任意 | `reports fetch` | レポートの保存先ディレクトリ。デフォルト `./reports` |
+| `ASC_API_BASE_URL` | 任意 | `apps list` / `auth token` / `reports fetch` / `analytics` 系 | API のベース URL。デフォルト `https://api.appstoreconnect.apple.com` |
+| `ASC_REPORTS_DIR` | 任意 | `reports fetch` / `analytics fetch` | レポートの保存先ディレクトリ。デフォルト `./reports` |
+| `ASC_APP_ID` | 任意 | `analytics` 系 | `--app` 省略時に使われるデフォルトのアプリ ID |
 
-`reports list` は環境変数を必要としません。
+認証用の環境変数（`ASC_ISSUER_ID` / `ASC_KEY_ID` / 秘密鍵）は `analytics` 系コマンドでも必須です。`reports list` は環境変数を必要としません。
 
 ---
 
@@ -205,7 +384,7 @@ asc reports fetch --from 2026-06-01 --to 2026-06-03
   - `--json` 指定時のエラー形式: `{"ok":false,"error":{"code":"...","message":"...","details":...}}`
 - **exit code**:
   - `0`: 成功
-  - `2`: **設定不足**（認証用環境変数の不足 = `ASC_AUTH_NOT_CONFIGURED`、`ASC_VENDOR_NUMBER` の不足 = `ASC_REPORTS_NOT_CONFIGURED`）、入力バリデーションエラー（`VALIDATION_FAILED`）、API の 4xx エラー
+  - `2`: **設定不足**（認証用環境変数の不足 = `ASC_AUTH_NOT_CONFIGURED`、`ASC_VENDOR_NUMBER` の不足 = `ASC_REPORTS_NOT_CONFIGURED`、アプリ ID の不足 = `ASC_APP_ID_REQUIRED`）、入力バリデーションエラー（`VALIDATION_FAILED`）、前提条件の不足（ONGOING リクエスト未作成 = `ASC_ANALYTICS_REQUEST_NOT_FOUND`、レポート名不一致 = `ASC_ANALYTICS_REPORT_NOT_FOUND`）、API の 4xx エラー
   - `1`: API の 5xx エラー、その他の予期しないエラー
 
 ### 設定不足時のエラー例（exit code 2）

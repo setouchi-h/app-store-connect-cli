@@ -15,6 +15,11 @@ export interface AscReportsConfig extends AscAuthConfig {
   reportsDir: string;
 }
 
+export interface AscAnalyticsConfig extends AscAuthConfig {
+  reportsDir: string;
+  appId?: string;
+}
+
 function parseEnv(env: NodeJS.ProcessEnv): AscEnv {
   return AscEnvSchema.parse(env);
 }
@@ -72,5 +77,16 @@ export function loadReportsConfig(env: NodeJS.ProcessEnv = process.env): AscRepo
     ...authConfig,
     vendorNumber: parsed.ASC_VENDOR_NUMBER,
     reportsDir: parsed.ASC_REPORTS_DIR ?? "reports"
+  };
+}
+
+export function loadAnalyticsConfig(env: NodeJS.ProcessEnv = process.env): AscAnalyticsConfig {
+  const parsed = parseEnv(env);
+  const authConfig = loadAuthConfig(env);
+
+  return {
+    ...authConfig,
+    reportsDir: parsed.ASC_REPORTS_DIR ?? "reports",
+    appId: parsed.ASC_APP_ID
   };
 }

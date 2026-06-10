@@ -9,7 +9,7 @@ import type { CliContext } from "./context.js";
 
 export function registerReportsCommand(program: Command, context: CliContext): void {
   const reports = new Command("reports")
-    .description("Analytics report commands.")
+    .description("Sales and Trends report commands.")
     .option("--json", "Emit JSON output.");
 
   reports

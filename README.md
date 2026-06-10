@@ -1,6 +1,6 @@
 # app-store-connect-cli
 
-`asc` is a Node.js/TypeScript ESM CLI for fetching, storing, and summarizing App Store Connect analytics data in an automation-friendly JSON format.
+`asc` is a Node.js/TypeScript ESM CLI for downloading App Store Connect report data for automated workflows.
 
 ## Setup
 
@@ -21,7 +21,6 @@ Required for authenticated Apple API calls:
 Optional:
 
 - `ASC_API_BASE_URL` for test or proxy endpoints
-- `ASC_DUCKDB_PATH` defaults to `./data/asc.duckdb`
 - `ASC_REPORTS_DIR` defaults to `./reports`
 
 ## Development
@@ -41,11 +40,10 @@ All command results are emitted as JSON on stdout. Diagnostics, validation messa
 pnpm dev -- apps list --json
 pnpm dev -- auth token --json
 pnpm dev -- reports list --json
-pnpm dev -- reports fetch --app-id 1234567890 --from 2026-01-01 --to 2026-01-31 --json
-pnpm dev -- reports summarize --from 2026-01-01 --to 2026-01-31 --json
+pnpm dev -- reports fetch --from 2026-01-01 --to 2026-01-31 --json
 ```
 
-`reports fetch` downloads daily Sales and Trends summary reports, parses TSV/gzip content, stores normalized rows in DuckDB, and keeps raw TSV copies in `reports/`.
+`reports fetch` downloads daily Sales and Trends summary reports and stores the raw report files in `reports/`.
 
 ## Automation Rules
 
@@ -53,7 +51,7 @@ pnpm dev -- reports summarize --from 2026-01-01 --to 2026-01-31 --json
 - Read stderr for warnings, validation failures, and actionable error details.
 - Always pass `--json` in automated workflows.
 - Never prompt for missing values; set environment variables before running commands.
-- Never write or commit real App Store Connect credentials, private keys, DuckDB data files, or downloaded report files.
+- Never write or commit real App Store Connect credentials, private keys, or downloaded report files.
 - Prefer `reports list` before `reports fetch` so automated workflows can validate supported report contracts.
 
 ## Project Layout
@@ -63,10 +61,8 @@ src/
   cli.ts
   commands/
   appstore/
-  storage/
   schemas/
   utils/
 tests/
-data/
 reports/
 ```

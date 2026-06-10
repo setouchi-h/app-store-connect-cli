@@ -1,6 +1,3 @@
-import { mkdtemp } from "node:fs/promises";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { describe, expect, it } from "vitest";
 import { runCli } from "../src/cli.js";
 
@@ -82,8 +79,6 @@ describe("asc CLI", () => {
         "asc",
         "reports",
         "fetch",
-        "--app-id",
-        "1234567890",
         "--from",
         "not-a-date",
         "--to",
@@ -101,42 +96,5 @@ describe("asc CLI", () => {
         code: "VALIDATION_FAILED"
       }
     });
-  });
-
-  it("summarizes an empty local DuckDB database through reports without credentials", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "asc-test-"));
-    const io = createWriters();
-    const exitCode = await runCli(
-      [
-        "node",
-        "asc",
-        "reports",
-        "summarize",
-        "--from",
-        "2026-01-01",
-        "--to",
-        "2026-01-31",
-        "--json"
-      ],
-      {
-        ...io,
-        env: {
-          ASC_DUCKDB_PATH: join(directory, "analytics.duckdb")
-        }
-      }
-    );
-
-    expect(exitCode).toBe(0);
-    expect(JSON.parse(io.stdoutText)).toEqual({
-      from: "2026-01-01",
-      to: "2026-01-31",
-      rows: [],
-      totals: {
-        units: 0,
-        proceeds: 0,
-        rows: 0
-      }
-    });
-    expect(io.stderrText).toBe("");
   });
 });

@@ -17,9 +17,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@duckdb/node-api": "1.5.3-r.3",
     "commander": "^14.0.2",
-    "csv-parse": "^6.1.0",
     "jose": "^6.1.2",
     "zod": "^4.1.13"
   },

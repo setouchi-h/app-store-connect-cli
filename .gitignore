@@ -10,8 +10,6 @@ coverage/
 *.p8
 AuthKey_*.p8
 
-data/*.duckdb
-data/*.duckdb.*
 reports/*
 !reports/.gitkeep
 

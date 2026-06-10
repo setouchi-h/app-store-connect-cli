@@ -13,11 +13,6 @@ export interface AscAuthConfig {
 export interface AscReportsConfig extends AscAuthConfig {
   vendorNumber: string;
   reportsDir: string;
-  duckdbPath: string;
-}
-
-export interface StorageConfig {
-  duckdbPath: string;
 }
 
 function parseEnv(env: NodeJS.ProcessEnv): AscEnv {
@@ -76,14 +71,6 @@ export function loadReportsConfig(env: NodeJS.ProcessEnv = process.env): AscRepo
   return {
     ...authConfig,
     vendorNumber: parsed.ASC_VENDOR_NUMBER,
-    reportsDir: parsed.ASC_REPORTS_DIR ?? "reports",
-    duckdbPath: parsed.ASC_DUCKDB_PATH ?? "data/asc.duckdb"
-  };
-}
-
-export function loadStorageConfig(env: NodeJS.ProcessEnv = process.env): StorageConfig {
-  const parsed = parseEnv(env);
-  return {
-    duckdbPath: parsed.ASC_DUCKDB_PATH ?? "data/asc.duckdb"
+    reportsDir: parsed.ASC_REPORTS_DIR ?? "reports"
   };
 }

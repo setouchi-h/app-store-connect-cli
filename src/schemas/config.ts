@@ -12,7 +12,6 @@ export const AscEnvSchema = z.object({
   ASC_PRIVATE_KEY: OptionalEnvString,
   ASC_VENDOR_NUMBER: OptionalEnvString,
   ASC_API_BASE_URL: OptionalEnvString,
-  ASC_DUCKDB_PATH: OptionalEnvString,
   ASC_REPORTS_DIR: OptionalEnvString
 });
 

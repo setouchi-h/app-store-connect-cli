@@ -47,7 +47,7 @@ pnpm dev -- analytics request ensure --app <id> --json
 pnpm dev -- analytics reports --app <id> --json
 
 # Fetch report files, saved as reports/analytics-<report>-<granularity>-<date>-<n>.tsv
-pnpm dev -- analytics fetch --app <id> --report "App Store Discovery and Engagement" \
+pnpm dev -- analytics fetch --app <id> --report "App Store Discovery and Engagement Standard" \
   --from 2026-06-01 --to 2026-06-07 --json
 ```
 
@@ -69,9 +69,13 @@ yourself (awk, Python, etc.). Sales files may be gzipped (`.tsv.gz`) — gunzip 
   share data with developers. Never compute a ratio that mixes the two populations
   without saying so.
 - **Conversion rate** = downloads ÷ unique viewers. Use "App Store Discovery and
-  Engagement" (unique counts of impressions/page views) as the denominator and a
-  downloads report (e.g. "App Downloads Standard") as the numerator, matched on the
-  same date range and territory.
+  Engagement Standard" (unique counts of impressions/page views) as the denominator
+  and a downloads report (e.g. "App Downloads Standard") as the numerator, matched on
+  the same date range and territory.
+- **Standard vs Detailed variants**: most analytics reports exist as two separate
+  reports, "<Name> Standard" and "<Name> Detailed" (e.g. "App Downloads Detailed").
+  Detailed adds finer dimensions but loses more rows to privacy thresholding. Prefer
+  Standard when computing totals; use Detailed for breakdowns.
 - **Data freshness**: analytics instances appear ~daily with 24–48h lag. A newly
   created request produces nothing for up to 48 hours — an empty `files: []` result
   with a stderr warning is normal, not an error.

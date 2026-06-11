@@ -44,7 +44,7 @@ fi
 ASC=(node "$REPO_DIR/dist/cli.js")
 SALES_WINDOW_DAYS="${SALES_WINDOW_DAYS:-3}"
 ANALYTICS_WINDOW_DAYS="${ANALYTICS_WINDOW_DAYS:-7}"
-ANALYTICS_REPORTS="${ASC_DAILY_ANALYTICS_REPORTS:-App Store Discovery and Engagement,App Downloads Standard}"
+ANALYTICS_REPORTS="${ASC_DAILY_ANALYTICS_REPORTS:-App Store Discovery and Engagement Standard,App Store Discovery and Engagement Detailed,App Downloads Standard,App Downloads Detailed}"
 
 log() {
   printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >&2

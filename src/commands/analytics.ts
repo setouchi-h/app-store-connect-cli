@@ -90,7 +90,7 @@ export function registerAnalyticsCommand(program: Command, context: CliContext):
     .command("fetch")
     .description("Fetch analytics report files for a date range.")
     .option("--app <appId>", "App Store Connect app ID. Defaults to ASC_APP_ID.")
-    .requiredOption("--report <name>", 'Report name, e.g. "App Store Discovery and Engagement".')
+    .requiredOption("--report <name>", 'Report name, e.g. "App Store Discovery and Engagement Standard".')
     .option("--access-type <type>", "ONGOING or ONE_TIME_SNAPSHOT.", "ONGOING")
     .option("--granularity <granularity>", "DAILY, WEEKLY, or MONTHLY.", "DAILY")
     .requiredOption("--from <date>", "Start date in YYYY-MM-DD format.")

@@ -44,7 +44,7 @@ pnpm dev -- reports list --json
 pnpm dev -- reports fetch --from 2026-01-01 --to 2026-01-31 --json
 pnpm dev -- analytics request ensure --app 1234567890 --json
 pnpm dev -- analytics reports --app 1234567890 --json
-pnpm dev -- analytics fetch --app 1234567890 --report "App Store Discovery and Engagement" --from 2026-01-01 --to 2026-01-31 --json
+pnpm dev -- analytics fetch --app 1234567890 --report "App Store Discovery and Engagement Standard" --from 2026-01-01 --to 2026-01-31 --json
 ```
 
 `reports fetch` downloads daily Sales and Trends summary reports and stores the raw report files in `reports/`.

@@ -62,7 +62,9 @@ yourself (awk, Python, etc.). Sales files may be gzipped (`.tsv.gz`) — gunzip 
 - **Privacy thresholding in analytics reports**: rows representing fewer than ~5
   unique users/devices are omitted entirely. Fine-grained slices (small country ×
   source combinations) undercount; totals computed from sliced rows will be lower
-  than the true total. Prefer coarser dimensions when sums matter.
+  than the true total. Prefer coarser dimensions when sums matter. The same works
+  in time: when DAILY rows are suppressed for a small app, `--granularity WEEKLY`
+  or `MONTHLY` aggregates enough users per row to survive — read those instead.
 - **Population differs by category**: App Store engagement and commerce data
   (impressions, page views, downloads, purchases) covers ALL users. App Usage data
   (sessions, active devices, installs/deletions) covers only users who opted in to

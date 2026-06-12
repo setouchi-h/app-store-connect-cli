@@ -3,7 +3,10 @@
 #
 # Fetches into $ASC_REPORTS_DIR (default ./reports):
 #   - Sales and Trends daily summaries for the last SALES_WINDOW_DAYS days
-#   - App Analytics report files for the last ANALYTICS_WINDOW_DAYS days
+#   - App Analytics report files at every granularity in
+#     ASC_DAILY_ANALYTICS_GRANULARITIES, each over a trailing window wide enough
+#     for its publication schedule (daily: every day; weekly: Fridays; monthly:
+#     ~5th of the following month)
 #
 # Behavior:
 #   - Idempotent: re-runs overwrite the same files, so overlapping windows are safe.
@@ -19,12 +22,16 @@
 #     ASC_APP_ID (used as the default app for analytics commands). See .env.example.
 #
 # Configuration (env or .env):
-#   ASC_DAILY_ANALYTICS_REPORTS  Comma-separated analytics report names to fetch.
-#                                Verify exact names with: asc analytics reports --json
-#   SALES_WINDOW_DAYS            How many trailing days of sales to (re)fetch. Default 3.
-#   ANALYTICS_WINDOW_DAYS        Trailing window for analytics instances. Default 7,
-#                                which absorbs the 24-48h reporting lag and a few
-#                                days of scheduler downtime.
+#   ASC_DAILY_ANALYTICS_REPORTS        Comma-separated analytics report names to fetch.
+#                                      Verify exact names with: asc analytics reports --json
+#   ASC_DAILY_ANALYTICS_GRANULARITIES  Comma-separated granularities to fetch.
+#                                      Default DAILY,WEEKLY,MONTHLY.
+#   SALES_WINDOW_DAYS                  How many trailing days of sales to (re)fetch. Default 3.
+#   ANALYTICS_WINDOW_DAYS              Trailing window for DAILY analytics instances.
+#                                      Default 7, which absorbs the 24-48h reporting
+#                                      lag and a few days of scheduler downtime.
+#   WEEKLY_WINDOW_DAYS                 Trailing window for WEEKLY instances. Default 21.
+#   MONTHLY_WINDOW_DAYS                Trailing window for MONTHLY instances. Default 45.
 
 set -u -o pipefail
 
@@ -56,10 +63,25 @@ fi
 ASC=(node "$REPO_DIR/dist/cli.js")
 SALES_WINDOW_DAYS="${SALES_WINDOW_DAYS:-3}"
 ANALYTICS_WINDOW_DAYS="${ANALYTICS_WINDOW_DAYS:-7}"
-ANALYTICS_REPORTS="${ASC_DAILY_ANALYTICS_REPORTS:-App Store Discovery and Engagement Standard,App Store Discovery and Engagement Detailed,App Downloads Standard,App Downloads Detailed}"
+ANALYTICS_REPORTS="${ASC_DAILY_ANALYTICS_REPORTS:-App Store Discovery and Engagement Standard,App Store Discovery and Engagement Detailed,App Downloads Standard,App Downloads Detailed,App Sessions Standard,App Store Installation and Deletion Standard}"
+ANALYTICS_GRANULARITIES="${ASC_DAILY_ANALYTICS_GRANULARITIES:-DAILY,WEEKLY,MONTHLY}"
 
 log() {
   printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >&2
+}
+
+trim() {
+  local s="$1"
+  s="${s#"${s%%[![:space:]]*}"}"
+  printf '%s' "${s%"${s##*[![:space:]]}"}"
+}
+
+granularity_window_days() {
+  case "$1" in
+  WEEKLY) echo "${WEEKLY_WINDOW_DAYS:-21}" ;;
+  MONTHLY) echo "${MONTHLY_WINDOW_DAYS:-45}" ;;
+  *) echo "$ANALYTICS_WINDOW_DAYS" ;;
+  esac
 }
 
 days_ago() {
@@ -82,7 +104,6 @@ for ((offset = 1; offset <= SALES_WINDOW_DAYS; offset++)); do
 done
 
 # --- App Analytics ---
-from="$(days_ago "$ANALYTICS_WINDOW_DAYS")"
 to="$(days_ago 1)"
 
 log "analytics: ensuring ONGOING report request"
@@ -92,15 +113,20 @@ if ! "${ASC[@]}" analytics request ensure --json; then
 fi
 
 IFS=',' read -r -a reports <<<"$ANALYTICS_REPORTS"
-for report in "${reports[@]}"; do
-  report="${report#"${report%%[![:space:]]*}"}"
-  report="${report%"${report##*[![:space:]]}"}"
-  [[ -z $report ]] && continue
-  log "analytics: fetching '$report' $from..$to"
-  if ! "${ASC[@]}" analytics fetch --report "$report" --from "$from" --to "$to" --json; then
-    log "analytics: ERROR fetch failed for '$report'"
-    failures=$((failures + 1))
-  fi
+IFS=',' read -r -a granularities <<<"$ANALYTICS_GRANULARITIES"
+for granularity in "${granularities[@]}"; do
+  granularity="$(trim "$granularity")"
+  [[ -z $granularity ]] && continue
+  from="$(days_ago "$(granularity_window_days "$granularity")")"
+  for report in "${reports[@]}"; do
+    report="$(trim "$report")"
+    [[ -z $report ]] && continue
+    log "analytics: fetching '$report' ($granularity) $from..$to"
+    if ! "${ASC[@]}" analytics fetch --report "$report" --granularity "$granularity" --from "$from" --to "$to" --json; then
+      log "analytics: ERROR fetch failed for '$report' ($granularity)"
+      failures=$((failures + 1))
+    fi
+  done
 done
 
 if ((failures > 0)); then

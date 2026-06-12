@@ -41,6 +41,18 @@ if [[ -f .env ]]; then
   set +a
 fi
 
+# cron/launchd run with a minimal PATH that usually lacks node (nvm/homebrew
+# installs); use the first match: newest nvm version, then Homebrew, /usr/local.
+if ! command -v node >/dev/null 2>&1; then
+  for dir in "$(ls -d "$HOME"/.nvm/versions/node/*/bin 2>/dev/null | sort -V | tail -1)" /opt/homebrew/bin /usr/local/bin; do
+    if [[ -n $dir && -x "$dir/node" ]]; then
+      PATH="$dir:$PATH"
+      break
+    fi
+  done
+  export PATH
+fi
+
 ASC=(node "$REPO_DIR/dist/cli.js")
 SALES_WINDOW_DAYS="${SALES_WINDOW_DAYS:-3}"
 ANALYTICS_WINDOW_DAYS="${ANALYTICS_WINDOW_DAYS:-7}"

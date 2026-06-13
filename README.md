@@ -44,12 +44,35 @@ pnpm dev -- reports list --json
 pnpm dev -- reports fetch --from 2026-01-01 --to 2026-01-31 --json
 pnpm dev -- analytics request ensure --app 1234567890 --json
 pnpm dev -- analytics reports --app 1234567890 --json
-pnpm dev -- analytics fetch --app 1234567890 --report "App Store Discovery and Engagement" --from 2026-01-01 --to 2026-01-31 --json
+pnpm dev -- analytics fetch --app 1234567890 --report "App Store Discovery and Engagement Standard" --from 2026-01-01 --to 2026-01-31 --json
 ```
 
 `reports fetch` downloads daily Sales and Trends summary reports and stores the raw report files in `reports/`.
 
 `analytics fetch` downloads App Analytics report files (Analytics Reports API) — App Store impressions, product page views, downloads, and more — into `reports/` as decompressed `.tsv` files. Run `analytics request ensure` once per app first; Apple then generates report instances continuously (the first data can take up to 48 hours). See [docs/commands.md](./docs/commands.md) for details.
+
+## Daily automation
+
+`scripts/fetch-daily.sh` fetches recent Sales and Trends summaries plus App
+Analytics report files (daily, weekly, and monthly granularities) in one run.
+It is idempotent and uses overlapping date windows, so missed days self-heal on
+the next run. Requires `pnpm build` and a filled `.env` including `ASC_APP_ID`.
+
+```sh
+./scripts/fetch-daily.sh           # run once manually
+./scripts/install-launchd.sh      # macOS: schedule it daily at 22:30 via launchd
+./scripts/install-launchd.sh 06:00 # ...or at another time
+./scripts/install-launchd.sh --uninstall
+```
+
+On Linux, register the script with cron instead:
+
+```cron
+30 22 * * * /path/to/app-store-connect-cli/scripts/fetch-daily.sh >> "$HOME/asc-fetch.log" 2>&1
+```
+
+Logs append to `~/Library/Logs/asc-fetch.log` (launchd). Customize report names,
+granularities, and window sizes via the variables documented in the script header.
 
 ## Automation Rules
 

@@ -317,6 +317,39 @@ describe("asc CLI", () => {
     });
   });
 
+  it("reports missing API body files as invalid request bodies", async () => {
+    const io = createWriters();
+    const directory = await mkdtemp(join(tmpdir(), "asc-api-body-"));
+    const missingPath = join(directory, "missing.json");
+
+    const exitCode = await runCli(
+      [
+        "node",
+        "asc",
+        "api",
+        "post",
+        "/v1/analyticsReportRequests",
+        "--body",
+        `@${missingPath}`,
+        "--json"
+      ],
+      io
+    );
+
+    expect(exitCode).toBe(2);
+    expect(io.stdoutText).toBe("");
+    expect(JSON.parse(io.stderrText)).toMatchObject({
+      ok: false,
+      error: {
+        code: "ASC_API_INVALID_BODY",
+        message: "Request body file could not be read.",
+        details: {
+          path: missingPath
+        }
+      }
+    });
+  });
+
   it("falls back to raw API response output when JSON response bodies are malformed", async () => {
     const io = createWriters();
     const fetchImpl = (async () =>

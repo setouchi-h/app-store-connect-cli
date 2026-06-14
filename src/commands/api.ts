@@ -250,7 +250,19 @@ async function readBodyFile(spec: string): Promise<string> {
     });
   }
 
-  return readFile(resolve(filePath), "utf8");
+  try {
+    return await readFile(resolve(filePath), "utf8");
+  } catch (error) {
+    throw new CliError("Request body file could not be read.", {
+      code: "ASC_API_INVALID_BODY",
+      exitCode: 2,
+      details: {
+        path: filePath,
+        hint: "Check that the file exists and is readable."
+      },
+      cause: error
+    });
+  }
 }
 
 function setHeaderIfMissing(headers: Record<string, string>, name: string, value: string): void {

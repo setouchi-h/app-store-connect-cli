@@ -317,6 +317,27 @@ describe("asc CLI", () => {
     });
   });
 
+  it("falls back to raw API response output when JSON response bodies are malformed", async () => {
+    const io = createWriters();
+    const fetchImpl = (async () =>
+      new Response('{"data":', {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })) as typeof fetch;
+
+    const exitCode = await runCli(
+      ["node", "asc", "api", "get", "/v1/apps", "--json"],
+      { ...io, env: createAuthEnv(), fetchImpl }
+    );
+
+    expect(exitCode).toBe(0);
+    expect(JSON.parse(io.stdoutText)).toEqual({
+      status: 200,
+      contentType: "application/json",
+      body: '{"data":'
+    });
+  });
+
   it("downloads raw API responses to a file", async () => {
     const io = createWriters();
     const directory = await mkdtemp(join(tmpdir(), "asc-api-download-"));

@@ -276,8 +276,12 @@ async function writeApiResponse(context: CliContext, response: Response): Promis
   }
 
   if (contentType.toLowerCase().includes("json")) {
-    writeJson(context.stdout, JSON.parse(body));
-    return;
+    try {
+      writeJson(context.stdout, JSON.parse(body));
+      return;
+    } catch {
+      // Fall through and emit the raw body when the server advertises JSON but sends invalid JSON.
+    }
   }
 
   writeJson(context.stdout, {

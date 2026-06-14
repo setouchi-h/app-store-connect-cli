@@ -167,6 +167,66 @@ describe("asc CLI", () => {
     expect(request!.headers["Authorization"]).toMatch(/^Bearer /);
   });
 
+  it("only shows API body options for methods that support request bodies", async () => {
+    for (const method of ["get", "delete"]) {
+      const io = createWriters();
+      const exitCode = await runCli(["node", "asc", "api", method, "--help"], io);
+
+      expect(exitCode).toBe(0);
+      expect(io.stdoutText).not.toContain("--body");
+    }
+
+    for (const method of ["post", "patch"]) {
+      const io = createWriters();
+      const exitCode = await runCli(["node", "asc", "api", method, "--help"], io);
+
+      expect(exitCode).toBe(0);
+      expect(io.stdoutText).toContain("--body <json-or-@file>");
+    }
+  });
+
+  it("rejects API GET and DELETE request bodies before fetching", async () => {
+    for (const [command, method] of [
+      ["get", "GET"],
+      ["delete", "DELETE"]
+    ] as const) {
+      const io = createWriters();
+      let fetchRequests = 0;
+      const fetchImpl = (async () => {
+        fetchRequests += 1;
+        return new Response("unexpected", { status: 200 });
+      }) as typeof fetch;
+
+      const exitCode = await runCli(
+        [
+          "node",
+          "asc",
+          "api",
+          command,
+          "/v1/apps",
+          "--body",
+          "{}",
+          "--json"
+        ],
+        { ...io, env: createAuthEnv(), fetchImpl }
+      );
+
+      expect(exitCode).toBe(2);
+      expect(fetchRequests).toBe(0);
+      expect(io.stdoutText).toBe("");
+      expect(JSON.parse(io.stderrText)).toMatchObject({
+        ok: false,
+        error: {
+          code: "ASC_API_UNSUPPORTED_BODY",
+          message: "Request bodies are only supported for POST and PATCH API methods.",
+          details: {
+            method
+          }
+        }
+      });
+    }
+  });
+
   it("rejects off-origin absolute API URLs before fetching", async () => {
     const io = createWriters();
     let fetchRequests = 0;

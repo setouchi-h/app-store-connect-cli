@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { createAppStoreConnectToken } from "../appstore/auth.js";
 import { AppStoreConnectClient } from "../appstore/client.js";
 import { loadAuthConfig } from "../appstore/config.js";
@@ -79,17 +79,26 @@ function registerJsonApiMethod(
   context: CliContext,
   method: JsonApiMethod
 ): void {
-  api
+  const command = api
     .command(method.toLowerCase())
     .description(`${method} an App Store Connect API endpoint.`)
     .argument("<path>", "API path, e.g. /v1/apps, or an absolute API URL.")
     .option("-q, --query <key=value>", "Add a query parameter. Repeat for multiple values.", collectOption, [])
     .option("-H, --header <name=value>", "Add a request header. Repeat for multiple values.", collectOption, [])
     .option("--accept <media-type>", "Set the Accept request header.", JSON_ACCEPT)
-    .option("--body <json-or-@file>", "JSON request body, or @path to read JSON from a file.")
-    .option("--json", "Emit JSON output.")
+    .option("--json", "Emit JSON output.");
+
+  const bodyOption = new Option(
+    "--body <json-or-@file>",
+    "JSON request body, or @path to read JSON from a file."
+  );
+
+  command.addOption(methodSupportsBody(method) ? bodyOption : bodyOption.hideHelp());
+
+  command
     .action(async (pathname: string, options: ApiRequestOptions) => {
-      const client = createClient(context);
+      validateBodySupport(method, options.body);
+
       const body = await readJsonBody(options.body);
       const headers = parseHeaders(options.header ?? []);
 
@@ -99,6 +108,7 @@ function registerJsonApiMethod(
         setHeaderIfMissing(headers, "Content-Type", "application/json");
       }
 
+      const client = createClient(context);
       const response = await client.requestRaw(pathname, {
         method,
         query: parseKeyValueOptions(options.query ?? [], "query"),
@@ -108,6 +118,25 @@ function registerJsonApiMethod(
 
       await writeApiResponse(context, response);
     });
+}
+
+function methodSupportsBody(method: JsonApiMethod): boolean {
+  return method === "POST" || method === "PATCH";
+}
+
+function validateBodySupport(method: JsonApiMethod, body: string | undefined): void {
+  if (body === undefined || methodSupportsBody(method)) {
+    return;
+  }
+
+  throw new CliError("Request bodies are only supported for POST and PATCH API methods.", {
+    code: "ASC_API_UNSUPPORTED_BODY",
+    exitCode: 2,
+    details: {
+      method,
+      hint: "Use asc api post or asc api patch when sending --body."
+    }
+  });
 }
 
 function createClient(context: CliContext): AppStoreConnectClient {

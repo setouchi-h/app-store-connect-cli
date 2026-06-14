@@ -167,6 +167,41 @@ describe("asc CLI", () => {
     expect(request!.headers["Authorization"]).toMatch(/^Bearer /);
   });
 
+  it("rejects off-origin absolute API URLs before fetching", async () => {
+    const io = createWriters();
+    let fetchRequests = 0;
+    const fetchImpl = (async () => {
+      fetchRequests += 1;
+      return new Response("unexpected", { status: 200 });
+    }) as typeof fetch;
+
+    const exitCode = await runCli(
+      [
+        "node",
+        "asc",
+        "api",
+        "get",
+        "https://api.appstoreconnect.apple.com.evil.test/v1/apps",
+        "--json"
+      ],
+      { ...io, env: createAuthEnv(), fetchImpl }
+    );
+
+    expect(exitCode).toBe(2);
+    expect(fetchRequests).toBe(0);
+    expect(io.stdoutText).toBe("");
+    expect(JSON.parse(io.stderrText)).toMatchObject({
+      ok: false,
+      error: {
+        code: "ASC_API_INVALID_URL",
+        details: {
+          requestedOrigin: "https://api.appstoreconnect.apple.com.evil.test",
+          allowedOrigin: "https://api.appstoreconnect.apple.com"
+        }
+      }
+    });
+  });
+
   it("passes through authenticated API POST requests with JSON bodies", async () => {
     const io = createWriters();
     let request:

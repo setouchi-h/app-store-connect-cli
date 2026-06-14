@@ -40,13 +40,13 @@
 
 Calls any App Store Connect JSON API endpoint with authentication. Use this for endpoints that do not have a dedicated high-level command yet, or when you want the raw Apple JSON:API response.
 
-`<path>` can be an API path such as `/v1/apps` or an absolute URL such as `https://api.appstoreconnect.apple.com/...`. JSON responses are emitted directly on stdout. `204 No Content` and non-JSON responses are emitted as JSON objects containing fields such as `status`.
+`<path>` can be an API path such as `/v1/apps` or an absolute URL on the configured API origin, such as `https://api.appstoreconnect.apple.com/...`. JSON responses are emitted directly on stdout. `204 No Content` and non-JSON responses are emitted as JSON objects containing fields such as `status`.
 
 ### Options
 
 | Option | Required | Description |
 | --- | --- | --- |
-| `<path>` | **Required** | API path or absolute URL |
+| `<path>` | **Required** | API path or absolute URL on the configured API origin |
 | `-q, --query <key=value>` | - | Query parameter. Repeat for multiple values |
 | `-H, --header <name=value>` | - | Extra request header. Accepts `Name=value` or `Name: value`. Repeat for multiple values |
 | `--accept <media-type>` | - | `Accept` header. Defaults to `application/json` |
@@ -77,7 +77,7 @@ Saves a raw App Store Connect API response to a file. Use this to directly fetch
 
 | Option | Required | Description |
 | --- | --- | --- |
-| `<path>` | **Required** | API path or absolute URL |
+| `<path>` | **Required** | API path or absolute URL on the configured API origin |
 | `-o, --out <path>` | **Required** | Destination file path |
 | `-q, --query <key=value>` | - | Query parameter. Repeat for multiple values |
 | `-H, --header <name=value>` | - | Extra request header. Repeat for multiple values |

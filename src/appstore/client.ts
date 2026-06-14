@@ -44,11 +44,15 @@ interface AppListResponse {
 
 export class AppStoreConnectClient {
   private readonly baseUrl: string;
+  private readonly allowedOrigin: string;
   private readonly tokenProvider: TokenProvider;
   private readonly fetchImpl: typeof fetch;
 
   constructor(options: AppStoreConnectClientOptions) {
-    this.baseUrl = options.baseUrl ?? "https://api.appstoreconnect.apple.com";
+    const baseUrl = options.baseUrl ?? "https://api.appstoreconnect.apple.com";
+
+    this.baseUrl = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+    this.allowedOrigin = new URL(this.baseUrl).origin;
     this.tokenProvider = options.tokenProvider;
     this.fetchImpl = options.fetchImpl ?? fetch;
   }
@@ -139,13 +143,13 @@ export class AppStoreConnectClient {
     query: Record<string, string>,
     init: RequestInit
   ): Promise<Response> {
-    const token = await this.tokenProvider.getToken();
-    const url = new URL(pathname, this.baseUrl.endsWith("/") ? this.baseUrl : `${this.baseUrl}/`);
+    const url = this.resolveApiUrl(pathname);
 
     for (const [key, value] of Object.entries(query)) {
       url.searchParams.set(key, value);
     }
 
+    const token = await this.tokenProvider.getToken();
     const response = await this.fetchImpl(url, {
       ...init,
       headers: {
@@ -168,6 +172,24 @@ export class AppStoreConnectClient {
     }
 
     return response;
+  }
+
+  private resolveApiUrl(pathname: string): URL {
+    const url = new URL(pathname, this.baseUrl);
+
+    if (url.origin !== this.allowedOrigin) {
+      throw new CliError("API URL must use the configured App Store Connect API origin.", {
+        code: "ASC_API_INVALID_URL",
+        exitCode: 2,
+        details: {
+          requestedOrigin: url.origin,
+          allowedOrigin: this.allowedOrigin,
+          hint: "Use an API path such as /v1/apps or an absolute URL on the configured API origin."
+        }
+      });
+    }
+
+    return url;
   }
 }
 

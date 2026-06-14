@@ -371,6 +371,54 @@ describe("asc CLI", () => {
     });
   });
 
+  it.each([
+    {
+      name: "204 responses",
+      response: new Response(null, { status: 204 })
+    },
+    {
+      name: "empty response bodies",
+      response: new Response("  \n", {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      })
+    }
+  ])("emits status-only output for $name", async ({ response }) => {
+    const io = createWriters();
+    const fetchImpl = (async () => response) as typeof fetch;
+
+    const exitCode = await runCli(
+      ["node", "asc", "api", "get", "/v1/apps", "--json"],
+      { ...io, env: createAuthEnv(), fetchImpl }
+    );
+
+    expect(exitCode).toBe(0);
+    expect(JSON.parse(io.stdoutText)).toEqual({ status: response.status });
+    expect(io.stderrText).toBe("");
+  });
+
+  it("emits status, content type, and body for non-JSON API responses", async () => {
+    const io = createWriters();
+    const fetchImpl = (async () =>
+      new Response("plain response", {
+        status: 200,
+        headers: { "Content-Type": "text/plain" }
+      })) as typeof fetch;
+
+    const exitCode = await runCli(
+      ["node", "asc", "api", "get", "/v1/apps", "--json"],
+      { ...io, env: createAuthEnv(), fetchImpl }
+    );
+
+    expect(exitCode).toBe(0);
+    expect(JSON.parse(io.stdoutText)).toEqual({
+      status: 200,
+      contentType: "text/plain",
+      body: "plain response"
+    });
+    expect(io.stderrText).toBe("");
+  });
+
   it("emits non-2xx API response bodies on stdout before exiting non-zero", async () => {
     const io = createWriters();
     const detail = "invalid ".repeat(700);

@@ -11,6 +11,8 @@ import type { CliContext } from "./context.js";
 const JSON_ACCEPT = "application/json";
 const DOWNLOAD_ACCEPT =
   "application/a-gzip, application/gzip, text/tab-separated-values, text/plain, application/octet-stream";
+const QUERY_OPTION_DESCRIPTION =
+  "Add a query parameter. Repeat for different keys; use comma-separated values for one key.";
 
 interface ApiRequestOptions {
   query?: string[];
@@ -41,7 +43,7 @@ export function registerApiCommand(program: Command, context: CliContext): void 
     .command("download")
     .description("Download a raw App Store Connect API response to a file.")
     .argument("<path>", "API path, e.g. /v1/salesReports, or an absolute API URL.")
-    .option("-q, --query <key=value>", "Add a query parameter. Repeat for multiple values.", collectOption, [])
+    .option("-q, --query <key=value>", QUERY_OPTION_DESCRIPTION, collectOption, [])
     .option("-H, --header <name=value>", "Add a request header. Repeat for multiple values.", collectOption, [])
     .option("--accept <media-type>", "Set the Accept request header.", DOWNLOAD_ACCEPT)
     .requiredOption("-o, --out <path>", "File path for the downloaded response.")
@@ -89,7 +91,7 @@ function registerJsonApiMethod(
     .command(method.toLowerCase())
     .description(`${method} an App Store Connect API endpoint.`)
     .argument("<path>", "API path, e.g. /v1/apps, or an absolute API URL.")
-    .option("-q, --query <key=value>", "Add a query parameter. Repeat for multiple values.", collectOption, [])
+    .option("-q, --query <key=value>", QUERY_OPTION_DESCRIPTION, collectOption, [])
     .option("-H, --header <name=value>", "Add a request header. Repeat for multiple values.", collectOption, [])
     .option("--accept <media-type>", "Set the Accept request header.", JSON_ACCEPT)
     .option("--json", "Emit JSON output.");

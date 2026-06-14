@@ -1,5 +1,12 @@
+import { generateKeyPairSync } from "node:crypto";
+import { mkdtemp, readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { runCli } from "../src/cli.js";
+
+const { privateKey } = generateKeyPairSync("ec", { namedCurve: "P-256" });
+const PRIVATE_KEY_PEM = privateKey.export({ type: "pkcs8", format: "pem" }).toString();
 
 function createWriters() {
   let stdout = "";
@@ -25,6 +32,14 @@ function createWriters() {
   };
 }
 
+function createAuthEnv(): NodeJS.ProcessEnv {
+  return {
+    ASC_ISSUER_ID: "issuer-1",
+    ASC_KEY_ID: "key-1",
+    ASC_PRIVATE_KEY: PRIVATE_KEY_PEM
+  };
+}
+
 describe("asc CLI", () => {
   it("prints root help without App Store Connect credentials", async () => {
     const io = createWriters();
@@ -32,6 +47,7 @@ describe("asc CLI", () => {
 
     expect(exitCode).toBe(0);
     expect(io.stdoutText).toContain("Usage: asc");
+    expect(io.stdoutText).toContain("api");
     expect(io.stdoutText).toContain("reports");
     expect(io.stderrText).toBe("");
   });
@@ -95,6 +111,150 @@ describe("asc CLI", () => {
       error: {
         code: "VALIDATION_FAILED"
       }
+    });
+  });
+
+  it("passes through authenticated API GET requests", async () => {
+    const io = createWriters();
+    let request:
+      | {
+          url: URL;
+          headers: Record<string, string>;
+        }
+      | undefined;
+    const fetchImpl = (async (input: unknown, init?: RequestInit) => {
+      request = {
+        url: new URL(String(input)),
+        headers: (init?.headers as Record<string, string>) ?? {}
+      };
+
+      return new Response(
+        JSON.stringify({
+          data: [{ id: "app-1", type: "apps" }]
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        }
+      );
+    }) as typeof fetch;
+
+    const exitCode = await runCli(
+      [
+        "node",
+        "asc",
+        "api",
+        "get",
+        "/v1/apps",
+        "--query",
+        "limit=1",
+        "--query",
+        "filter[name]=Example",
+        "--json"
+      ],
+      { ...io, env: createAuthEnv(), fetchImpl }
+    );
+
+    expect(exitCode).toBe(0);
+    expect(io.stderrText).toBe("");
+    expect(JSON.parse(io.stdoutText)).toEqual({
+      data: [{ id: "app-1", type: "apps" }]
+    });
+    expect(request!.url.pathname).toBe("/v1/apps");
+    expect(request!.url.searchParams.get("limit")).toBe("1");
+    expect(request!.url.searchParams.get("filter[name]")).toBe("Example");
+    expect(request!.headers["Accept"]).toBe("application/json");
+    expect(request!.headers["Authorization"]).toMatch(/^Bearer /);
+  });
+
+  it("passes through authenticated API POST requests with JSON bodies", async () => {
+    const io = createWriters();
+    let request:
+      | {
+          method: string;
+          body?: string;
+          headers: Record<string, string>;
+        }
+      | undefined;
+    const fetchImpl = (async (_input: unknown, init?: RequestInit) => {
+      request = {
+        method: init?.method ?? "GET",
+        body: typeof init?.body === "string" ? init.body : undefined,
+        headers: (init?.headers as Record<string, string>) ?? {}
+      };
+
+      return new Response(
+        JSON.stringify({
+          data: { id: "req-1", type: "analyticsReportRequests" }
+        }),
+        {
+          status: 201,
+          headers: { "Content-Type": "application/json" }
+        }
+      );
+    }) as typeof fetch;
+
+    const exitCode = await runCli(
+      [
+        "node",
+        "asc",
+        "api",
+        "post",
+        "/v1/analyticsReportRequests",
+        "--header",
+        "X-Test: yes",
+        "--body",
+        '{"data":{"type":"analyticsReportRequests"}}',
+        "--json"
+      ],
+      { ...io, env: createAuthEnv(), fetchImpl }
+    );
+
+    expect(exitCode).toBe(0);
+    expect(request).toMatchObject({
+      method: "POST",
+      body: '{"data":{"type":"analyticsReportRequests"}}'
+    });
+    expect(request!.headers["Content-Type"]).toBe("application/json");
+    expect(request!.headers["X-Test"]).toBe("yes");
+    expect(JSON.parse(io.stdoutText)).toEqual({
+      data: { id: "req-1", type: "analyticsReportRequests" }
+    });
+  });
+
+  it("downloads raw API responses to a file", async () => {
+    const io = createWriters();
+    const directory = await mkdtemp(join(tmpdir(), "asc-api-download-"));
+    const outputPath = join(directory, "report.tsv");
+    const fetchImpl = (async () =>
+      new Response("Date\tUnits\n2026-06-01\t2\n", {
+        status: 200,
+        headers: { "Content-Type": "text/tab-separated-values" }
+      })) as typeof fetch;
+
+    const exitCode = await runCli(
+      [
+        "node",
+        "asc",
+        "api",
+        "download",
+        "/v1/salesReports",
+        "--query",
+        "filter[frequency]=DAILY",
+        "--out",
+        outputPath,
+        "--json"
+      ],
+      { ...io, env: createAuthEnv(), fetchImpl }
+    );
+
+    expect(exitCode).toBe(0);
+    await expect(readFile(outputPath, "utf8")).resolves.toBe("Date\tUnits\n2026-06-01\t2\n");
+    expect(JSON.parse(io.stdoutText)).toMatchObject({
+      status: 200,
+      path: outputPath,
+      bytes: 24,
+      contentType: "text/tab-separated-values"
     });
   });
 });

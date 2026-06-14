@@ -4,7 +4,7 @@
 
 ## CLI 概要
 
-`asc` は App Store Connect 分析 CLI（App Store Connect analytics CLI）です。App Store Connect API を利用して、アプリ一覧の取得・API 認証用 JWT の生成・Sales and Trends レポートのダウンロード・App Analytics レポート（Analytics Reports API）のダウンロードを行います。
+`asc` は App Store Connect 分析 CLI（App Store Connect analytics CLI）です。App Store Connect API を利用して、API エンドポイントの直接呼び出し、アプリ一覧の取得・API 認証用 JWT の生成・Sales and Trends レポートのダウンロード・App Analytics レポート（Analytics Reports API）のダウンロードを行います。
 
 - **コマンド名**: `asc`（`package.json` の `bin` として登録。開発時は `pnpm dev -- <args>` で `tsx src/cli.ts` を実行）
 - **バージョン**: `0.1.0`
@@ -21,6 +21,8 @@
 
 | コマンド | 説明 |
 | --- | --- |
+| [`asc api get/post/patch/delete`](#asc-api-getpostpatchdelete) | App Store Connect API の JSON エンドポイントを直接呼び出す |
+| [`asc api download`](#asc-api-download) | App Store Connect API の raw レスポンスをファイルに保存する |
 | [`asc apps list`](#asc-apps-list) | App Store Connect のアプリ一覧を取得する |
 | [`asc auth token`](#asc-auth-token) | App Store Connect API 用の JWT を生成する |
 | [`asc reports list`](#asc-reports-list) | サポートしているレポート定義の一覧を表示する |
@@ -29,6 +31,81 @@
 | [`asc analytics request list`](#asc-analytics-request-list) | レポート生成リクエストの一覧を取得する |
 | [`asc analytics reports`](#asc-analytics-reports) | 利用可能な App Analytics レポートの一覧を取得する |
 | [`asc analytics fetch`](#asc-analytics-fetch) | App Analytics レポートのファイルをダウンロードする |
+
+---
+
+## asc api get/post/patch/delete
+
+### 説明
+
+App Store Connect API の任意の JSON エンドポイントを、認証付きで直接呼び出します。専用コマンドがまだない API を試す場合や、Apple の JSON:API レスポンスをそのまま取得したい場合に使います。
+
+`<path>` には `/v1/apps` のような API パス、または `https://api.appstoreconnect.apple.com/...` の絶対 URL を指定できます。レスポンスが JSON の場合は API レスポンスをそのまま stdout に出力します。`204 No Content` や非 JSON レスポンスの場合は、`status` などを含む JSON を出力します。
+
+### オプション
+
+| オプション | 必須 | 説明 |
+| --- | --- | --- |
+| `<path>` | **必須** | API パスまたは絶対 URL |
+| `-q, --query <key=value>` | - | クエリパラメータ。複数回指定可能 |
+| `-H, --header <name=value>` | - | 追加ヘッダー。`Name=value` または `Name: value`。複数回指定可能 |
+| `--accept <media-type>` | - | `Accept` ヘッダー。デフォルト `application/json` |
+| `--body <json-or-@file>` | - | JSON request body。`@body.json` のようにファイル指定も可能 |
+| `--json` | - | エラー出力を JSON 形式にする（JSON レスポンスは常に JSON） |
+
+### 実行例
+
+```sh
+asc api get /v1/apps --query limit=200
+
+asc api post /v1/analyticsReportRequests \
+  --body @request.json
+
+asc api patch /v1/apps/1234567890 \
+  --body '{"data":{"type":"apps","id":"1234567890","attributes":{"name":"My App"}}}'
+```
+
+---
+
+## asc api download
+
+### 説明
+
+App Store Connect API の raw レスポンスをファイルに保存します。Sales and Trends レポートのような gzip/TSV レスポンスを、専用コマンドを介さず直接取得したい場合に使います。
+
+### オプション
+
+| オプション | 必須 | 説明 |
+| --- | --- | --- |
+| `<path>` | **必須** | API パスまたは絶対 URL |
+| `-o, --out <path>` | **必須** | 保存先ファイルパス |
+| `-q, --query <key=value>` | - | クエリパラメータ。複数回指定可能 |
+| `-H, --header <name=value>` | - | 追加ヘッダー。複数回指定可能 |
+| `--accept <media-type>` | - | `Accept` ヘッダー |
+| `--json` | - | エラー出力を JSON 形式にする（結果は常に JSON） |
+
+### 実行例
+
+```sh
+asc api download /v1/salesReports \
+  --query 'filter[frequency]=DAILY' \
+  --query 'filter[reportDate]=2026-06-01' \
+  --query 'filter[reportSubType]=SUMMARY' \
+  --query 'filter[reportType]=SALES' \
+  --query 'filter[vendorNumber]=12345678' \
+  --out reports/sales-summary-2026-06-01.tsv.gz
+```
+
+### 出力例（JSON）
+
+```json
+{
+  "status": 200,
+  "path": "/path/to/reports/sales-summary-2026-06-01.tsv.gz",
+  "bytes": 1024,
+  "contentType": "application/a-gzip"
+}
+```
 
 ---
 
@@ -363,16 +440,16 @@ asc analytics fetch --app 1234567890 \
 
 | 環境変数 | 必須 | 対象コマンド | 説明 |
 | --- | --- | --- | --- |
-| `ASC_ISSUER_ID` | 必須 | `apps list` / `auth token` / `reports fetch` | App Store Connect API の Issuer ID |
-| `ASC_KEY_ID` | 必須 | `apps list` / `auth token` / `reports fetch` | API キーの Key ID |
-| `ASC_PRIVATE_KEY_PATH` | 必須（`ASC_PRIVATE_KEY` とどちらか一方） | `apps list` / `auth token` / `reports fetch` | 秘密鍵（`.p8`）ファイルへのパス |
-| `ASC_PRIVATE_KEY` | 必須（`ASC_PRIVATE_KEY_PATH` とどちらか一方） | `apps list` / `auth token` / `reports fetch` | 秘密鍵の内容（PKCS#8 PEM 文字列）。`ASC_PRIVATE_KEY` が設定されている場合はこちらが優先 |
+| `ASC_ISSUER_ID` | 必須 | `api` 系 / `apps list` / `auth token` / `reports fetch` | App Store Connect API の Issuer ID |
+| `ASC_KEY_ID` | 必須 | `api` 系 / `apps list` / `auth token` / `reports fetch` | API キーの Key ID |
+| `ASC_PRIVATE_KEY_PATH` | 必須（`ASC_PRIVATE_KEY` とどちらか一方） | `api` 系 / `apps list` / `auth token` / `reports fetch` | 秘密鍵（`.p8`）ファイルへのパス |
+| `ASC_PRIVATE_KEY` | 必須（`ASC_PRIVATE_KEY_PATH` とどちらか一方） | `api` 系 / `apps list` / `auth token` / `reports fetch` | 秘密鍵の内容（PKCS#8 PEM 文字列）。`ASC_PRIVATE_KEY` が設定されている場合はこちらが優先 |
 | `ASC_VENDOR_NUMBER` | 必須（reports のみ） | `reports fetch` | Sales and Trends レポートの Vendor Number |
-| `ASC_API_BASE_URL` | 任意 | `apps list` / `auth token` / `reports fetch` / `analytics` 系 | API のベース URL。デフォルト `https://api.appstoreconnect.apple.com` |
+| `ASC_API_BASE_URL` | 任意 | `api` 系 / `apps list` / `auth token` / `reports fetch` / `analytics` 系 | API のベース URL。デフォルト `https://api.appstoreconnect.apple.com` |
 | `ASC_REPORTS_DIR` | 任意 | `reports fetch` / `analytics fetch` | レポートの保存先ディレクトリ。デフォルト `./reports` |
 | `ASC_APP_ID` | 任意 | `analytics` 系 | `--app` 省略時に使われるデフォルトのアプリ ID |
 
-認証用の環境変数（`ASC_ISSUER_ID` / `ASC_KEY_ID` / 秘密鍵）は `analytics` 系コマンドでも必須です。`reports list` は環境変数を必要としません。
+認証用の環境変数（`ASC_ISSUER_ID` / `ASC_KEY_ID` / 秘密鍵）は `api` 系と `analytics` 系コマンドでも必須です。`reports list` は環境変数を必要としません。
 
 ---
 

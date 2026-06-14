@@ -40,12 +40,17 @@ All command results are emitted as JSON on stdout. Diagnostics, validation messa
 ```sh
 pnpm dev -- apps list --json
 pnpm dev -- auth token --json
+pnpm dev -- api get /v1/apps --query limit=200 --json
+pnpm dev -- api post /v1/analyticsReportRequests --body @request.json --json
+pnpm dev -- api download /v1/salesReports --query 'filter[frequency]=DAILY' --out report.tsv.gz --json
 pnpm dev -- reports list --json
 pnpm dev -- reports fetch --from 2026-01-01 --to 2026-01-31 --json
 pnpm dev -- analytics request ensure --app 1234567890 --json
 pnpm dev -- analytics reports --app 1234567890 --json
 pnpm dev -- analytics fetch --app 1234567890 --report "App Store Discovery and Engagement Standard" --from 2026-01-01 --to 2026-01-31 --json
 ```
+
+`api` commands are thin authenticated wrappers around App Store Connect API endpoints. Use them when you need an endpoint that does not have a dedicated high-level command yet.
 
 `reports fetch` downloads daily Sales and Trends summary reports and stores the raw report files in `reports/`.
 

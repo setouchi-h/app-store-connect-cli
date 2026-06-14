@@ -10,6 +10,13 @@ export interface AppStoreConnectClientOptions {
   fetchImpl?: typeof fetch;
 }
 
+export interface AppStoreConnectRequestOptions {
+  method?: string;
+  query?: Record<string, string>;
+  headers?: Record<string, string>;
+  body?: RequestInit["body"];
+}
+
 export interface AppSummary {
   id: string;
   name?: string;
@@ -72,6 +79,17 @@ export class AppStoreConnectClient {
 
   async getJson<T>(pathname: string, query: Record<string, string> = {}): Promise<T> {
     return this.requestJson<T>(pathname, query);
+  }
+
+  async requestRaw(
+    pathname: string,
+    options: AppStoreConnectRequestOptions = {}
+  ): Promise<Response> {
+    return this.request(pathname, options.query ?? {}, {
+      method: options.method ?? "GET",
+      headers: options.headers,
+      body: options.body
+    });
   }
 
   async postJson<T>(pathname: string, body: unknown): Promise<T> {

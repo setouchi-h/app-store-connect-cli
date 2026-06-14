@@ -4,7 +4,7 @@
 
 ## CLI Overview
 
-`asc` is an App Store Connect analytics CLI. It uses the App Store Connect API to list apps, generate API authentication JWTs, download Sales and Trends reports, and download App Analytics reports (Analytics Reports API).
+`asc` is an App Store Connect analytics CLI. It uses the App Store Connect API to call API endpoints directly, list apps, generate API authentication JWTs, download Sales and Trends reports, and download App Analytics reports (Analytics Reports API).
 
 - **Command name**: `asc` (registered as `bin` in `package.json`; during development, run `pnpm dev -- <args>` to execute `tsx src/cli.ts`)
 - **Version**: `0.1.0`
@@ -21,6 +21,8 @@
 
 | Command | Description |
 | --- | --- |
+| [`asc api get/post/patch/delete`](#asc-api-getpostpatchdelete) | Call App Store Connect JSON API endpoints directly |
+| [`asc api download`](#asc-api-download) | Save a raw App Store Connect API response to a file |
 | [`asc apps list`](#asc-apps-list) | List apps from App Store Connect |
 | [`asc auth token`](#asc-auth-token) | Generate a JWT for the App Store Connect API |
 | [`asc reports list`](#asc-reports-list) | List supported report definitions |
@@ -29,6 +31,81 @@
 | [`asc analytics request list`](#asc-analytics-request-list) | List analytics report requests |
 | [`asc analytics reports`](#asc-analytics-reports) | List available App Analytics reports |
 | [`asc analytics fetch`](#asc-analytics-fetch) | Download App Analytics report files |
+
+---
+
+## asc api get/post/patch/delete
+
+### Description
+
+Calls any App Store Connect JSON API endpoint with authentication. Use this for endpoints that do not have a dedicated high-level command yet, or when you want the raw Apple JSON:API response.
+
+`<path>` can be an API path such as `/v1/apps` or an absolute URL such as `https://api.appstoreconnect.apple.com/...`. JSON responses are emitted directly on stdout. `204 No Content` and non-JSON responses are emitted as JSON objects containing fields such as `status`.
+
+### Options
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `<path>` | **Required** | API path or absolute URL |
+| `-q, --query <key=value>` | - | Query parameter. Repeat for multiple values |
+| `-H, --header <name=value>` | - | Extra request header. Accepts `Name=value` or `Name: value`. Repeat for multiple values |
+| `--accept <media-type>` | - | `Accept` header. Defaults to `application/json` |
+| `--body <json-or-@file>` | - | JSON request body. Use `@body.json` to read from a file |
+| `--json` | - | Format error output as JSON (JSON responses are always JSON) |
+
+### Examples
+
+```sh
+asc api get /v1/apps --query limit=200
+
+asc api post /v1/analyticsReportRequests \
+  --body @request.json
+
+asc api patch /v1/apps/1234567890 \
+  --body '{"data":{"type":"apps","id":"1234567890","attributes":{"name":"My App"}}}'
+```
+
+---
+
+## asc api download
+
+### Description
+
+Saves a raw App Store Connect API response to a file. Use this to directly fetch gzip/TSV responses such as Sales and Trends reports without going through a dedicated high-level command.
+
+### Options
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `<path>` | **Required** | API path or absolute URL |
+| `-o, --out <path>` | **Required** | Destination file path |
+| `-q, --query <key=value>` | - | Query parameter. Repeat for multiple values |
+| `-H, --header <name=value>` | - | Extra request header. Repeat for multiple values |
+| `--accept <media-type>` | - | `Accept` header |
+| `--json` | - | Format error output as JSON (results are always JSON) |
+
+### Example
+
+```sh
+asc api download /v1/salesReports \
+  --query 'filter[frequency]=DAILY' \
+  --query 'filter[reportDate]=2026-06-01' \
+  --query 'filter[reportSubType]=SUMMARY' \
+  --query 'filter[reportType]=SALES' \
+  --query 'filter[vendorNumber]=12345678' \
+  --out reports/sales-summary-2026-06-01.tsv.gz
+```
+
+### Output Example (JSON)
+
+```json
+{
+  "status": 200,
+  "path": "/path/to/reports/sales-summary-2026-06-01.tsv.gz",
+  "bytes": 1024,
+  "contentType": "application/a-gzip"
+}
+```
 
 ---
 
@@ -363,16 +440,16 @@ See `.env.example` for a sample configuration. Empty strings are treated as unse
 
 | Variable | Required | Commands | Description |
 | --- | --- | --- | --- |
-| `ASC_ISSUER_ID` | Required | `apps list` / `auth token` / `reports fetch` | Issuer ID for the App Store Connect API |
-| `ASC_KEY_ID` | Required | `apps list` / `auth token` / `reports fetch` | Key ID of the API key |
-| `ASC_PRIVATE_KEY_PATH` | Required (either this or `ASC_PRIVATE_KEY`) | `apps list` / `auth token` / `reports fetch` | Path to the private key (`.p8`) file |
-| `ASC_PRIVATE_KEY` | Required (either this or `ASC_PRIVATE_KEY_PATH`) | `apps list` / `auth token` / `reports fetch` | Private key contents (PKCS#8 PEM string). Takes precedence when both are set |
+| `ASC_ISSUER_ID` | Required | `api *` / `apps list` / `auth token` / `reports fetch` | Issuer ID for the App Store Connect API |
+| `ASC_KEY_ID` | Required | `api *` / `apps list` / `auth token` / `reports fetch` | Key ID of the API key |
+| `ASC_PRIVATE_KEY_PATH` | Required (either this or `ASC_PRIVATE_KEY`) | `api *` / `apps list` / `auth token` / `reports fetch` | Path to the private key (`.p8`) file |
+| `ASC_PRIVATE_KEY` | Required (either this or `ASC_PRIVATE_KEY_PATH`) | `api *` / `apps list` / `auth token` / `reports fetch` | Private key contents (PKCS#8 PEM string). Takes precedence when both are set |
 | `ASC_VENDOR_NUMBER` | Required (reports only) | `reports fetch` | Vendor Number for Sales and Trends reports |
-| `ASC_API_BASE_URL` | Optional | `apps list` / `auth token` / `reports fetch` / `analytics *` | Base URL of the API. Default `https://api.appstoreconnect.apple.com` |
+| `ASC_API_BASE_URL` | Optional | `api *` / `apps list` / `auth token` / `reports fetch` / `analytics *` | Base URL of the API. Default `https://api.appstoreconnect.apple.com` |
 | `ASC_REPORTS_DIR` | Optional | `reports fetch` / `analytics fetch` | Directory where reports are saved. Default `./reports` |
 | `ASC_APP_ID` | Optional | `analytics *` | Default app ID used when `--app` is omitted |
 
-The authentication variables (`ASC_ISSUER_ID` / `ASC_KEY_ID` / private key) are also required by the `analytics` commands. `reports list` requires no environment variables.
+The authentication variables (`ASC_ISSUER_ID` / `ASC_KEY_ID` / private key) are also required by the `api` and `analytics` commands. `reports list` requires no environment variables.
 
 ---
 

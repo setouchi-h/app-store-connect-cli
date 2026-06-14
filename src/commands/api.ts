@@ -17,14 +17,14 @@ const QUERY_OPTION_DESCRIPTION =
 interface ApiRequestOptions {
   query?: string[];
   header?: string[];
-  accept?: string;
+  accept: string;
   body?: string;
 }
 
 interface ApiDownloadOptions {
   query?: string[];
   header?: string[];
-  accept?: string;
+  accept: string;
   out: string;
 }
 
@@ -52,7 +52,7 @@ export function registerApiCommand(program: Command, context: CliContext): void 
       const client = createClient(context);
       const headers = parseHeaders(options.header ?? []);
 
-      setHeaderIfMissing(headers, "Accept", options.accept ?? DOWNLOAD_ACCEPT);
+      setHeaderIfMissing(headers, "Accept", options.accept);
 
       const response = await client.requestRaw(pathname, {
         method: "GET",
@@ -110,7 +110,7 @@ function registerJsonApiMethod(
       const body = await readJsonBody(options.body);
       const headers = parseHeaders(options.header ?? []);
 
-      setHeaderIfMissing(headers, "Accept", options.accept ?? JSON_ACCEPT);
+      setHeaderIfMissing(headers, "Accept", options.accept);
 
       if (body !== undefined) {
         setHeaderIfMissing(headers, "Content-Type", "application/json");

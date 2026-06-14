@@ -57,6 +57,12 @@ export function registerApiCommand(program: Command, context: CliContext): void 
         query: parseKeyValueOptions(options.query ?? [], "query"),
         headers
       });
+
+      if (!response.ok) {
+        await writeApiResponse(context, response);
+        throw createApiRequestFailedError(response);
+      }
+
       const data = Buffer.from(await response.arrayBuffer());
       const outputPath = resolve(options.out);
 
@@ -117,6 +123,7 @@ function registerJsonApiMethod(
       });
 
       await writeApiResponse(context, response);
+      throwIfApiResponseFailed(response);
     });
 }
 
@@ -300,5 +307,31 @@ async function writeApiResponse(context: CliContext, response: Response): Promis
     status: response.status,
     contentType: contentType || undefined,
     body
+  });
+}
+
+function throwIfApiResponseFailed(response: Response): void {
+  if (response.ok) {
+    return;
+  }
+
+  throw createApiRequestFailedError(response);
+}
+
+function createApiRequestFailedError(response: Response): CliError {
+  const details: Record<string, unknown> = {
+    status: response.status,
+    statusText: response.statusText,
+    hint: "The full response body was emitted on stdout."
+  };
+
+  if (response.url) {
+    details.url = response.url;
+  }
+
+  return new CliError(`App Store Connect API request failed with HTTP ${response.status}.`, {
+    code: "ASC_API_REQUEST_FAILED",
+    exitCode: response.status >= 500 ? 1 : 2,
+    details
   });
 }

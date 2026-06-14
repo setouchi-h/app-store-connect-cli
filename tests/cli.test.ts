@@ -371,6 +371,78 @@ describe("asc CLI", () => {
     });
   });
 
+  it("emits non-2xx API response bodies on stdout before exiting non-zero", async () => {
+    const io = createWriters();
+    const detail = "invalid ".repeat(700);
+    const payload = {
+      errors: [
+        {
+          status: "422",
+          code: "ENTITY_ERROR.ATTRIBUTE.INVALID",
+          detail
+        }
+      ]
+    };
+    const fetchImpl = (async () =>
+      new Response(JSON.stringify(payload), {
+        status: 422,
+        statusText: "Unprocessable Entity",
+        headers: { "Content-Type": "application/json" }
+      })) as typeof fetch;
+
+    const exitCode = await runCli(
+      ["node", "asc", "api", "post", "/v1/analyticsReportRequests", "--body", "{}", "--json"],
+      { ...io, env: createAuthEnv(), fetchImpl }
+    );
+
+    expect(exitCode).toBe(2);
+    expect(JSON.parse(io.stdoutText)).toEqual(payload);
+    expect(io.stdoutText).toContain(detail);
+    expect(JSON.parse(io.stderrText)).toMatchObject({
+      ok: false,
+      error: {
+        code: "ASC_API_REQUEST_FAILED",
+        message: "App Store Connect API request failed with HTTP 422.",
+        details: {
+          status: 422,
+          statusText: "Unprocessable Entity",
+          hint: "The full response body was emitted on stdout."
+        }
+      }
+    });
+    expect(JSON.parse(io.stderrText).error.details.body).toBeUndefined();
+  });
+
+  it("emits non-2xx API download response bodies on stdout without writing the output file", async () => {
+    const io = createWriters();
+    const directory = await mkdtemp(join(tmpdir(), "asc-api-download-error-"));
+    const outputPath = join(directory, "report.tsv");
+    const payload = {
+      errors: [
+        {
+          status: "409",
+          code: "STATE_ERROR",
+          detail: "The report is not ready."
+        }
+      ]
+    };
+    const fetchImpl = (async () =>
+      new Response(JSON.stringify(payload), {
+        status: 409,
+        statusText: "Conflict",
+        headers: { "Content-Type": "application/json" }
+      })) as typeof fetch;
+
+    const exitCode = await runCli(
+      ["node", "asc", "api", "download", "/v1/salesReports", "--out", outputPath, "--json"],
+      { ...io, env: createAuthEnv(), fetchImpl }
+    );
+
+    expect(exitCode).toBe(2);
+    expect(JSON.parse(io.stdoutText)).toEqual(payload);
+    await expect(readFile(outputPath, "utf8")).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
   it("downloads raw API responses to a file", async () => {
     const io = createWriters();
     const directory = await mkdtemp(join(tmpdir(), "asc-api-download-"));

@@ -89,11 +89,18 @@ export class AppStoreConnectClient {
     pathname: string,
     options: AppStoreConnectRequestOptions = {}
   ): Promise<Response> {
-    return this.request(pathname, options.query ?? {}, {
-      method: options.method ?? "GET",
-      headers: options.headers,
-      body: options.body
-    });
+    return this.request(
+      pathname,
+      options.query ?? {},
+      {
+        method: options.method ?? "GET",
+        headers: options.headers,
+        body: options.body
+      },
+      {
+        throwOnError: false
+      }
+    );
   }
 
   async postJson<T>(pathname: string, body: unknown): Promise<T> {
@@ -141,7 +148,8 @@ export class AppStoreConnectClient {
   private async request(
     pathname: string,
     query: Record<string, string>,
-    init: RequestInit
+    init: RequestInit,
+    options: { throwOnError?: boolean } = {}
   ): Promise<Response> {
     const url = this.resolveApiUrl(pathname);
 
@@ -158,7 +166,7 @@ export class AppStoreConnectClient {
       }
     });
 
-    if (!response.ok) {
+    if (!response.ok && options.throwOnError !== false) {
       throw new CliError(`App Store Connect API request failed with HTTP ${response.status}.`, {
         code: "ASC_API_REQUEST_FAILED",
         exitCode: response.status >= 500 ? 1 : 2,

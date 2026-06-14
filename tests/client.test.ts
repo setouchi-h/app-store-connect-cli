@@ -37,6 +37,25 @@ describe("AppStoreConnectClient", () => {
     expect(request!.headers["Authorization"]).toBe("Bearer test-token");
   });
 
+  it("returns non-2xx raw API responses without consuming the body", async () => {
+    const errorBody = "x".repeat(5_000);
+    const client = new AppStoreConnectClient({
+      fetchImpl: (async () =>
+        new Response(errorBody, {
+          status: 422,
+          headers: { "Content-Type": "application/json" }
+        })) as typeof fetch,
+      tokenProvider: {
+        getToken: async () => "test-token"
+      }
+    });
+
+    const response = await client.requestRaw("/v1/apps");
+
+    expect(response.status).toBe(422);
+    await expect(response.text()).resolves.toBe(errorBody);
+  });
+
   it("rejects off-origin absolute API URLs before creating a token or fetching", async () => {
     let tokenRequests = 0;
     let fetchRequests = 0;

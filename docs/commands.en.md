@@ -49,7 +49,7 @@ Calls any App Store Connect JSON API endpoint with authentication. Use this for 
 | `<path>` | **Required** | API path or absolute URL on the configured API origin |
 | `-q, --query <key=value>` | - | Query parameter. Repeat for different keys; use comma-separated values for one key |
 | `-H, --header <name=value>` | - | Extra request header. Accepts `Name=value` or `Name: value`. Repeat for multiple values |
-| `--accept <media-type>` | - | `Accept` header. Defaults to `application/json` |
+| `--accept <media-type>` | - | `Accept` header. An `Accept` value set with `-H/--header` takes precedence. Defaults to `application/json` |
 | `--body <json-or-@file>` | - | JSON request body. Use `@body.json` to read from a file |
 | `--json` | - | Format error output as JSON (JSON responses are always JSON) |
 
@@ -81,7 +81,7 @@ Saves a raw App Store Connect API response to a file. Use this to directly fetch
 | `-o, --out <path>` | **Required** | Destination file path |
 | `-q, --query <key=value>` | - | Query parameter. Repeat for different keys; use comma-separated values for one key |
 | `-H, --header <name=value>` | - | Extra request header. Repeat for multiple values |
-| `--accept <media-type>` | - | `Accept` header |
+| `--accept <media-type>` | - | `Accept` header. An `Accept` value set with `-H/--header` takes precedence |
 | `--json` | - | Format error output as JSON (results are always JSON) |
 
 ### Example

@@ -2,6 +2,7 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command, CommanderError } from "commander";
+import { registerApiCommand } from "./commands/api.js";
 import { registerAnalyticsCommand } from "./commands/analytics.js";
 import { registerAppsCommand } from "./commands/apps.js";
 import { registerAuthCommand } from "./commands/auth.js";
@@ -22,6 +23,7 @@ export function createCli(dependencies: CliDependencies = {}): Command {
     .option("--json", "Emit JSON output.")
     .showHelpAfterError();
 
+  registerApiCommand(program, context);
   registerAnalyticsCommand(program, context);
   registerAppsCommand(program, context);
   registerAuthCommand(program, context);

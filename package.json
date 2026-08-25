@@ -2,6 +2,7 @@
   "name": "app-store-connect-cli",
   "version": "0.1.0",
   "description": "App Store Connect analytics CLI",
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@11.1.2",
   "bin": {

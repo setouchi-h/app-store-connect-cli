@@ -15,7 +15,7 @@ export class CliError extends Error {
   constructor(message: string, options: CliErrorOptions = {}) {
     super(message, { cause: options.cause });
     this.name = "CliError";
-    this.code = options.code ?? "ASC_AI_ERROR";
+    this.code = options.code ?? "ASC_CLI_ERROR";
     this.exitCode = options.exitCode ?? 1;
     this.details = options.details;
   }

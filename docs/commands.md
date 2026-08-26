@@ -114,8 +114,7 @@ Calls the App Store Connect API (`GET /v1/apps`, `limit=200`) and retrieves the 
 
 ### Options
 
-| Option | Required | Description |
-| --- | --- | --- |
+This command takes no options.
 
 ### Example
 
@@ -151,8 +150,7 @@ Generates a JWT for the App Store Connect API (ES256 signature, audience `appsto
 
 ### Options
 
-| Option | Required | Description |
-| --- | --- | --- |
+This command takes no options.
 
 ### Example
 
@@ -183,8 +181,7 @@ Lists the report definitions supported by this CLI. It only prints static defini
 
 ### Options
 
-| Option | Required | Description |
-| --- | --- | --- |
+This command takes no options.
 
 ### Example
 

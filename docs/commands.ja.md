@@ -13,7 +13,6 @@
 
 | オプション | 説明 |
 | --- | --- |
-| `--json` | JSON 出力を指定するフラグ。成功時の結果はもともと常に JSON で出力されるため、実質的な効果は**エラー出力（stderr）も JSON 形式に切り替える**ことです。ルートコマンド・各サブコマンドのどちらでも指定できます。 |
 | `-V, --version` | バージョン（`0.1.0`）を表示して終了します。 |
 | `-h, --help` | ヘルプを表示して終了します。 |
 
@@ -51,7 +50,6 @@ App Store Connect API の任意の JSON エンドポイントを、認証付き�
 | `-H, --header <name=value>` | - | 追加ヘッダー。`Name=value` または `Name: value`。複数回指定可能 |
 | `--accept <media-type>` | - | `Accept` ヘッダー。`-H/--header` で `Accept` を指定した場合はそちらが優先されます。デフォルト `application/json` |
 | `--body <json-or-@file>` | - | JSON request body。`@body.json` のようにファイル指定も可能 |
-| `--json` | - | エラー出力を JSON 形式にする（JSON レスポンスは常に JSON） |
 
 ### 実行例
 
@@ -82,7 +80,6 @@ App Store Connect API の raw レスポンスをファイルに保存します�
 | `-q, --query <key=value>` | - | クエリパラメータ。異なるキーは複数回指定可能。同一キーの複数値はカンマ区切りで指定 |
 | `-H, --header <name=value>` | - | 追加ヘッダー。複数回指定可能 |
 | `--accept <media-type>` | - | `Accept` ヘッダー。`-H/--header` で `Accept` を指定した場合はそちらが優先されます |
-| `--json` | - | エラー出力を JSON 形式にする（結果は常に JSON） |
 
 ### 実行例
 
@@ -119,7 +116,6 @@ App Store Connect API（`GET /v1/apps`、`limit=200`）を呼び出し、アプ�
 
 | オプション | 必須 | 説明 |
 | --- | --- | --- |
-| `--json` | - | エラー出力を JSON 形式にする（結果は常に JSON） |
 
 ### 実行例
 
@@ -157,7 +153,6 @@ asc apps list
 
 | オプション | 必須 | 説明 |
 | --- | --- | --- |
-| `--json` | - | エラー出力を JSON 形式にする（結果は常に JSON） |
 
 ### 実行例
 
@@ -190,7 +185,6 @@ asc auth token
 
 | オプション | 必須 | 説明 |
 | --- | --- | --- |
-| `--json` | - | エラー出力を JSON 形式にする（結果は常に JSON） |
 
 ### 実行例
 
@@ -232,7 +226,6 @@ asc reports list
 | --- | --- | --- |
 | `--from <YYYY-MM-DD>` | **必須** | 取得開始日。`YYYY-MM-DD` 形式 |
 | `--to <YYYY-MM-DD>` | **必須** | 取得終了日。`YYYY-MM-DD` 形式。`--from` 以降の日付であること |
-| `--json` | - | エラー出力を JSON 形式にする（結果は常に JSON） |
 
 日付形式が不正な場合や `--from` > `--to` の場合は、バリデーションエラー（`VALIDATION_FAILED`、exit code 2）になります。
 
@@ -274,7 +267,6 @@ App Analytics（Analytics Reports API）のレポート生成リクエストを�
 | --- | --- | --- |
 | `--app <appId>` | -（`ASC_APP_ID` 未設定時は必須） | 対象アプリの App Store Connect ID。`asc apps list` で確認できます |
 | `--access-type <type>` | - | `ONGOING`（デフォルト）または `ONE_TIME_SNAPSHOT` |
-| `--json` | - | エラー出力を JSON 形式にする（結果は常に JSON） |
 
 ### 実行例
 
@@ -310,7 +302,6 @@ asc analytics request ensure --app 1234567890
 | オプション | 必須 | 説明 |
 | --- | --- | --- |
 | `--app <appId>` | -（`ASC_APP_ID` 未設定時は必須） | 対象アプリの App Store Connect ID |
-| `--json` | - | エラー出力を JSON 形式にする（結果は常に JSON） |
 
 ### 実行例
 
@@ -349,7 +340,6 @@ asc analytics request list --app 1234567890
 | `--app <appId>` | -（`ASC_APP_ID` 未設定時は必須） | 対象アプリの App Store Connect ID |
 | `--access-type <type>` | - | 参照するリクエストの種類。`ONGOING`（デフォルト）または `ONE_TIME_SNAPSHOT` |
 | `--category <category>` | - | カテゴリで絞り込み（例: `APP_STORE_ENGAGEMENT`） |
-| `--json` | - | エラー出力を JSON 形式にする（結果は常に JSON） |
 
 ### 実行例
 
@@ -401,7 +391,6 @@ gzip 圧縮されたセグメントは**解凍して**保存します。ファ�
 | `--granularity <granularity>` | - | `DAILY`（デフォルト）/ `WEEKLY` / `MONTHLY` |
 | `--from <YYYY-MM-DD>` | **必須** | 取得開始日（processingDate の下限） |
 | `--to <YYYY-MM-DD>` | **必須** | 取得終了日。`--from` 以降の日付であること |
-| `--json` | - | エラー出力を JSON 形式にする（結果は常に JSON） |
 
 ### 実行例
 
@@ -457,8 +446,7 @@ asc analytics fetch --app 1234567890 \
 
 - **stdout**: コマンド成功時の **JSON の結果のみ** を出力します（1 行の JSON + 改行）。パイプや `jq` での後続処理を想定しています。
 - **stderr**: 診断メッセージとエラーを出力します。
-  - 通常時のエラー形式: `エラーコード: メッセージ`（`details` がある場合は整形済み JSON が続く）
-  - `--json` 指定時のエラー形式: `{"ok":false,"error":{"code":"...","message":"...","details":...}}`
+  - エラー形式: `エラーコード: メッセージ`（`details` がある場合は整形済み JSON が続く）
 - **exit code**:
   - `0`: 成功
   - `2`: **設定不足**（認証用環境変数の不足 = `ASC_AUTH_NOT_CONFIGURED`、`ASC_VENDOR_NUMBER` の不足 = `ASC_REPORTS_NOT_CONFIGURED`、アプリ ID の不足 = `ASC_APP_ID_REQUIRED`）、入力バリデーションエラー（`VALIDATION_FAILED`）、前提条件の不足（ONGOING リクエスト未作成 = `ASC_ANALYTICS_REQUEST_NOT_FOUND`、レポート名不一致 = `ASC_ANALYTICS_REPORT_NOT_FOUND`）、API の 4xx エラー

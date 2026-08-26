@@ -13,7 +13,6 @@
 
 | Option | Description |
 | --- | --- |
-| `--json` | Flag for JSON output. Successful results are always emitted as JSON anyway, so its practical effect is to **switch error output (stderr) to JSON format as well**. It can be specified on the root command or on any subcommand. |
 | `-V, --version` | Print the version (`0.1.0`) and exit. |
 | `-h, --help` | Print help and exit. |
 
@@ -51,7 +50,6 @@ Calls any App Store Connect JSON API endpoint with authentication. Use this for 
 | `-H, --header <name=value>` | - | Extra request header. Accepts `Name=value` or `Name: value`. Repeat for multiple values |
 | `--accept <media-type>` | - | `Accept` header. An `Accept` value set with `-H/--header` takes precedence. Defaults to `application/json` |
 | `--body <json-or-@file>` | - | JSON request body. Use `@body.json` to read from a file |
-| `--json` | - | Format error output as JSON (JSON responses are always JSON) |
 
 ### Examples
 
@@ -82,7 +80,6 @@ Saves a raw App Store Connect API response to a file. Use this to directly fetch
 | `-q, --query <key=value>` | - | Query parameter. Repeat for different keys; use comma-separated values for one key |
 | `-H, --header <name=value>` | - | Extra request header. Repeat for multiple values |
 | `--accept <media-type>` | - | `Accept` header. An `Accept` value set with `-H/--header` takes precedence |
-| `--json` | - | Format error output as JSON (results are always JSON) |
 
 ### Example
 
@@ -119,7 +116,6 @@ Calls the App Store Connect API (`GET /v1/apps`, `limit=200`) and retrieves the 
 
 | Option | Required | Description |
 | --- | --- | --- |
-| `--json` | - | Format error output as JSON (results are always JSON) |
 
 ### Example
 
@@ -157,7 +153,6 @@ Generates a JWT for the App Store Connect API (ES256 signature, audience `appsto
 
 | Option | Required | Description |
 | --- | --- | --- |
-| `--json` | - | Format error output as JSON (results are always JSON) |
 
 ### Example
 
@@ -190,7 +185,6 @@ Lists the report definitions supported by this CLI. It only prints static defini
 
 | Option | Required | Description |
 | --- | --- | --- |
-| `--json` | - | Format error output as JSON (results are always JSON) |
 
 ### Example
 
@@ -232,7 +226,6 @@ In addition to the authentication environment variables, `ASC_VENDOR_NUMBER` is 
 | --- | --- | --- |
 | `--from <YYYY-MM-DD>` | **Required** | Start date in `YYYY-MM-DD` format |
 | `--to <YYYY-MM-DD>` | **Required** | End date in `YYYY-MM-DD` format. Must be on or after `--from` |
-| `--json` | - | Format error output as JSON (results are always JSON) |
 
 An invalid date format or `--from` > `--to` results in a validation error (`VALIDATION_FAILED`, exit code 2).
 
@@ -274,7 +267,6 @@ Registering `ONGOING` (the default) makes Apple generate daily, weekly, and mont
 | --- | --- | --- |
 | `--app <appId>` | - (required unless `ASC_APP_ID` is set) | App Store Connect app ID. Look it up with `asc apps list` |
 | `--access-type <type>` | - | `ONGOING` (default) or `ONE_TIME_SNAPSHOT` |
-| `--json` | - | Switch error output to JSON (results are always JSON) |
 
 ### Example
 
@@ -310,7 +302,6 @@ When `stoppedDueToInactivity` is `true`, Apple has stopped generating reports be
 | Option | Required | Description |
 | --- | --- | --- |
 | `--app <appId>` | - (required unless `ASC_APP_ID` is set) | App Store Connect app ID |
-| `--json` | - | Switch error output to JSON (results are always JSON) |
 
 ### Example
 
@@ -349,7 +340,6 @@ If no request with the given `--access-type` exists, the command fails with `ASC
 | `--app <appId>` | - (required unless `ASC_APP_ID` is set) | App Store Connect app ID |
 | `--access-type <type>` | - | Which request to resolve: `ONGOING` (default) or `ONE_TIME_SNAPSHOT` |
 | `--category <category>` | - | Filter by category (e.g. `APP_STORE_ENGAGEMENT`) |
-| `--json` | - | Switch error output to JSON (results are always JSON) |
 
 ### Example
 
@@ -401,7 +391,6 @@ If no instances fall within the range, the command exits successfully with `file
 | `--granularity <granularity>` | - | `DAILY` (default) / `WEEKLY` / `MONTHLY` |
 | `--from <YYYY-MM-DD>` | **Required** | Start date (lower bound of processingDate) |
 | `--to <YYYY-MM-DD>` | **Required** | End date. Must be on or after `--from` |
-| `--json` | - | Switch error output to JSON (results are always JSON) |
 
 ### Example
 
@@ -457,8 +446,7 @@ The authentication variables (`ASC_ISSUER_ID` / `ASC_KEY_ID` / private key) are 
 
 - **stdout**: On success, only the **JSON result** is printed (a single line of JSON plus a newline). Designed for piping and post-processing with tools like `jq`.
 - **stderr**: Diagnostics and errors.
-  - Default error format: `ERROR_CODE: message` (followed by pretty-printed JSON when `details` are present)
-  - With `--json`: `{"ok":false,"error":{"code":"...","message":"...","details":...}}`
+  - Error format: `ERROR_CODE: message` (followed by pretty-printed JSON when `details` are present)
 - **Exit codes**:
   - `0`: success
   - `2`: **missing configuration** (missing auth environment variables = `ASC_AUTH_NOT_CONFIGURED`, missing `ASC_VENDOR_NUMBER` = `ASC_REPORTS_NOT_CONFIGURED`, missing app ID = `ASC_APP_ID_REQUIRED`), input validation errors (`VALIDATION_FAILED`), missing prerequisites (no ONGOING request = `ASC_ANALYTICS_REQUEST_NOT_FOUND`, unknown report name = `ASC_ANALYTICS_REPORT_NOT_FOUND`), and API 4xx errors

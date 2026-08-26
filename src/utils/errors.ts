@@ -51,18 +51,7 @@ export function normalizeError(error: unknown): CliError {
   });
 }
 
-export function formatCliError(error: CliError, json: boolean): string {
-  if (json) {
-    return JSON.stringify({
-      ok: false,
-      error: {
-        code: error.code,
-        message: error.message,
-        details: error.details
-      }
-    });
-  }
-
+export function formatCliError(error: CliError): string {
   const suffix =
     error.details === undefined
       ? ""

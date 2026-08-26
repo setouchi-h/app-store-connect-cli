@@ -20,7 +20,6 @@ export function createCli(dependencies: CliDependencies = {}): Command {
     .name("asc")
     .description("App Store Connect analytics CLI.")
     .version(VERSION)
-    .option("--json", "Emit JSON output.")
     .showHelpAfterError();
 
   registerApiCommand(program, context);
@@ -54,7 +53,7 @@ export async function runCli(
     }
 
     const normalized = normalizeError(error);
-    context.stderr.write(`${formatCliError(normalized, normalizedArgv.includes("--json"))}\n`);
+    context.stderr.write(`${formatCliError(normalized)}\n`);
     return normalized.exitCode;
   }
 }

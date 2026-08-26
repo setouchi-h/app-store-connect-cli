@@ -32,8 +32,7 @@ type JsonApiMethod = "GET" | "POST" | "PATCH" | "DELETE";
 
 export function registerApiCommand(program: Command, context: CliContext): void {
   const api = new Command("api")
-    .description("Call App Store Connect API endpoints directly.")
-    .option("--json", "Emit JSON output.");
+    .description("Call App Store Connect API endpoints directly.");
 
   for (const method of ["GET", "POST", "PATCH", "DELETE"] as const) {
     registerJsonApiMethod(api, context, method);
@@ -47,7 +46,6 @@ export function registerApiCommand(program: Command, context: CliContext): void 
     .option("-H, --header <name=value>", "Add a request header. Repeat for multiple values.", collectOption, [])
     .option("--accept <media-type>", "Set the Accept request header.", DOWNLOAD_ACCEPT)
     .requiredOption("-o, --out <path>", "File path for the downloaded response.")
-    .option("--json", "Emit JSON output.")
     .action(async (pathname: string, options: ApiDownloadOptions) => {
       const client = createClient(context);
       const headers = parseHeaders(options.header ?? []);
@@ -93,8 +91,7 @@ function registerJsonApiMethod(
     .argument("<path>", "API path, e.g. /v1/apps, or an absolute API URL.")
     .option("-q, --query <key=value>", QUERY_OPTION_DESCRIPTION, collectOption, [])
     .option("-H, --header <name=value>", "Add a request header. Repeat for multiple values.", collectOption, [])
-    .option("--accept <media-type>", "Set the Accept request header.", JSON_ACCEPT)
-    .option("--json", "Emit JSON output.");
+    .option("--accept <media-type>", "Set the Accept request header.", JSON_ACCEPT);
 
   const bodyOption = new Option(
     "--body <json-or-@file>",

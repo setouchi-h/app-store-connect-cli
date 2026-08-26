@@ -23,7 +23,7 @@
 #
 # Configuration (env or .env):
 #   ASC_DAILY_ANALYTICS_REPORTS        Comma-separated analytics report names to fetch.
-#                                      Verify exact names with: asc analytics reports --json
+#                                      Verify exact names with: asc analytics reports
 #   ASC_DAILY_ANALYTICS_GRANULARITIES  Comma-separated granularities to fetch.
 #                                      Default DAILY,WEEKLY,MONTHLY.
 #   SALES_WINDOW_DAYS                  How many trailing days of sales to (re)fetch. Default 3.
@@ -98,7 +98,7 @@ failures=0
 for ((offset = 1; offset <= SALES_WINDOW_DAYS; offset++)); do
   day="$(days_ago "$offset")"
   log "sales: fetching $day"
-  if ! "${ASC[@]}" reports fetch --from "$day" --to "$day" --json; then
+  if ! "${ASC[@]}" reports fetch --from "$day" --to "$day"; then
     log "sales: WARNING fetch failed for $day (not published yet, or no transactions that day)"
   fi
 done
@@ -107,7 +107,7 @@ done
 to="$(days_ago 1)"
 
 log "analytics: ensuring ONGOING report request"
-if ! "${ASC[@]}" analytics request ensure --json; then
+if ! "${ASC[@]}" analytics request ensure; then
   log "analytics: ERROR request ensure failed"
   failures=$((failures + 1))
 fi
@@ -122,7 +122,7 @@ for granularity in "${granularities[@]}"; do
     report="$(trim "$report")"
     [[ -z $report ]] && continue
     log "analytics: fetching '$report' ($granularity) $from..$to"
-    if ! "${ASC[@]}" analytics fetch --report "$report" --granularity "$granularity" --from "$from" --to "$to" --json; then
+    if ! "${ASC[@]}" analytics fetch --report "$report" --granularity "$granularity" --from "$from" --to "$to"; then
       log "analytics: ERROR fetch failed for '$report' ($granularity)"
       failures=$((failures + 1))
     fi

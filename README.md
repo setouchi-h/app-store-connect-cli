@@ -83,7 +83,7 @@ granularities, and window sizes via the variables documented in the script heade
 
 - Treat stdout as the only machine-readable result stream.
 - Read stderr for warnings, validation failures, and actionable error details.
-- Detect failures from the exit code; error lines on stderr start with a stable error code (e.g. `VALIDATION_FAILED:`).
+- Detect failures from the exit code; application errors start the first stderr line with a stable error code (e.g. `VALIDATION_FAILED:`), while argument-parsing errors are reported by Commander with an `error:` prefix instead.
 - Never prompt for missing values; set environment variables before running commands.
 - Never write or commit real App Store Connect credentials, private keys, or downloaded report files.
 - Prefer `reports list` before `reports fetch` so automated workflows can validate supported report contracts.

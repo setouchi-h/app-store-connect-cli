@@ -444,10 +444,11 @@ The authentication variables (`ASC_ISSUER_ID` / `ASC_KEY_ID` / private key) are 
 - **stdout**: On success, only the **JSON result** is printed (a single line of JSON plus a newline). Designed for piping and post-processing with tools like `jq`.
 - **stderr**: Diagnostics and errors.
   - Error format: `ERROR_CODE: message` (followed by pretty-printed JSON when `details` are present)
+  - Argument-parsing errors (unknown options, missing required options) are reported by Commander as `error: message`, without an error code
 - **Exit codes**:
   - `0`: success
   - `2`: **missing configuration** (missing auth environment variables = `ASC_AUTH_NOT_CONFIGURED`, missing `ASC_VENDOR_NUMBER` = `ASC_REPORTS_NOT_CONFIGURED`, missing app ID = `ASC_APP_ID_REQUIRED`), input validation errors (`VALIDATION_FAILED`), missing prerequisites (no ONGOING request = `ASC_ANALYTICS_REQUEST_NOT_FOUND`, unknown report name = `ASC_ANALYTICS_REPORT_NOT_FOUND`), and API 4xx errors
-  - `1`: API 5xx errors and other unexpected errors
+  - `1`: API 5xx errors, argument-parsing errors, and other unexpected errors
 
 ### Error Example for Missing Configuration (exit code 2)
 

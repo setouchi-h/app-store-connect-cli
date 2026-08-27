@@ -444,10 +444,11 @@ asc analytics fetch --app 1234567890 \
 - **stdout**: コマンド成功時の **JSON の結果のみ** を出力します（1 行の JSON + 改行）。パイプや `jq` での後続処理を想定しています。
 - **stderr**: 診断メッセージとエラーを出力します。
   - エラー形式: `エラーコード: メッセージ`（`details` がある場合は整形済み JSON が続く）
+  - 引数パースエラー（不明なオプション、必須オプションの不足など）は Commander が `error: メッセージ` 形式で出力します（エラーコードは付きません）
 - **exit code**:
   - `0`: 成功
   - `2`: **設定不足**（認証用環境変数の不足 = `ASC_AUTH_NOT_CONFIGURED`、`ASC_VENDOR_NUMBER` の不足 = `ASC_REPORTS_NOT_CONFIGURED`、アプリ ID の不足 = `ASC_APP_ID_REQUIRED`）、入力バリデーションエラー（`VALIDATION_FAILED`）、前提条件の不足（ONGOING リクエスト未作成 = `ASC_ANALYTICS_REQUEST_NOT_FOUND`、レポート名不一致 = `ASC_ANALYTICS_REPORT_NOT_FOUND`）、API の 4xx エラー
-  - `1`: API の 5xx エラー、その他の予期しないエラー
+  - `1`: API の 5xx エラー、引数パースエラー、その他の予期しないエラー
 
 ### 設定不足時のエラー例（exit code 2）
 

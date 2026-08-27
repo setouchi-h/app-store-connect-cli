@@ -67,13 +67,13 @@ describe("asc CLI", () => {
 
     expect(exitCode).toBe(0);
     expect(io.stdoutText).toContain("Generate an App Store Connect JWT");
-    expect(io.stdoutText).toContain("--json");
+    expect(io.stdoutText).not.toContain("--json");
     expect(io.stderrText).toBe("");
   });
 
   it("lists supported reports without App Store Connect credentials", async () => {
     const io = createWriters();
-    const exitCode = await runCli(["node", "asc", "reports", "list", "--json"], io);
+    const exitCode = await runCli(["node", "asc", "reports", "list"], io);
 
     expect(exitCode).toBe(0);
     expect(JSON.parse(io.stdoutText)).toMatchObject({
@@ -98,20 +98,14 @@ describe("asc CLI", () => {
         "--from",
         "not-a-date",
         "--to",
-        "2026-01-02",
-        "--json"
+        "2026-01-02"
       ],
       io
     );
 
     expect(exitCode).toBe(2);
     expect(io.stdoutText).toBe("");
-    expect(JSON.parse(io.stderrText)).toMatchObject({
-      ok: false,
-      error: {
-        code: "VALIDATION_FAILED"
-      }
-    });
+    expect(io.stderrText).toContain("VALIDATION_FAILED: Input validation failed.");
   });
 
   it("passes through authenticated API GET requests", async () => {
@@ -149,8 +143,7 @@ describe("asc CLI", () => {
         "--query",
         "limit=1",
         "--query",
-        "filter[name]=Example",
-        "--json"
+        "filter[name]=Example"
       ],
       { ...io, env: createAuthEnv(), fetchImpl }
     );
@@ -205,8 +198,7 @@ describe("asc CLI", () => {
           command,
           "/v1/apps",
           "--body",
-          "{}",
-          "--json"
+          "{}"
         ],
         { ...io, env: createAuthEnv(), fetchImpl }
       );
@@ -214,16 +206,10 @@ describe("asc CLI", () => {
       expect(exitCode).toBe(2);
       expect(fetchRequests).toBe(0);
       expect(io.stdoutText).toBe("");
-      expect(JSON.parse(io.stderrText)).toMatchObject({
-        ok: false,
-        error: {
-          code: "ASC_API_UNSUPPORTED_BODY",
-          message: "Request bodies are only supported for POST and PATCH API methods.",
-          details: {
-            method
-          }
-        }
-      });
+      expect(io.stderrText).toContain(
+        "ASC_API_UNSUPPORTED_BODY: Request bodies are only supported for POST and PATCH API methods."
+      );
+      expect(io.stderrText).toContain(`"method": "${method}"`);
     }
   });
 
@@ -241,8 +227,7 @@ describe("asc CLI", () => {
         "asc",
         "api",
         "get",
-        "https://api.appstoreconnect.apple.com.evil.test/v1/apps",
-        "--json"
+        "https://api.appstoreconnect.apple.com.evil.test/v1/apps"
       ],
       { ...io, env: createAuthEnv(), fetchImpl }
     );
@@ -250,16 +235,11 @@ describe("asc CLI", () => {
     expect(exitCode).toBe(2);
     expect(fetchRequests).toBe(0);
     expect(io.stdoutText).toBe("");
-    expect(JSON.parse(io.stderrText)).toMatchObject({
-      ok: false,
-      error: {
-        code: "ASC_API_INVALID_URL",
-        details: {
-          requestedOrigin: "https://api.appstoreconnect.apple.com.evil.test",
-          allowedOrigin: "https://api.appstoreconnect.apple.com"
-        }
-      }
-    });
+    expect(io.stderrText).toContain("ASC_API_INVALID_URL:");
+    expect(io.stderrText).toContain(
+      '"requestedOrigin": "https://api.appstoreconnect.apple.com.evil.test"'
+    );
+    expect(io.stderrText).toContain('"allowedOrigin": "https://api.appstoreconnect.apple.com"');
   });
 
   it("passes through authenticated API POST requests with JSON bodies", async () => {
@@ -299,8 +279,7 @@ describe("asc CLI", () => {
         "--header",
         "X-Test: yes",
         "--body",
-        '{"data":{"type":"analyticsReportRequests"}}',
-        "--json"
+        '{"data":{"type":"analyticsReportRequests"}}'
       ],
       { ...io, env: createAuthEnv(), fetchImpl }
     );
@@ -330,24 +309,15 @@ describe("asc CLI", () => {
         "post",
         "/v1/analyticsReportRequests",
         "--body",
-        `@${missingPath}`,
-        "--json"
+        `@${missingPath}`
       ],
       io
     );
 
     expect(exitCode).toBe(2);
     expect(io.stdoutText).toBe("");
-    expect(JSON.parse(io.stderrText)).toMatchObject({
-      ok: false,
-      error: {
-        code: "ASC_API_INVALID_BODY",
-        message: "Request body file could not be read.",
-        details: {
-          path: missingPath
-        }
-      }
-    });
+    expect(io.stderrText).toContain("ASC_API_INVALID_BODY: Request body file could not be read.");
+    expect(io.stderrText).toContain(missingPath);
   });
 
   it("falls back to raw API response output when JSON response bodies are malformed", async () => {
@@ -359,7 +329,7 @@ describe("asc CLI", () => {
       })) as typeof fetch;
 
     const exitCode = await runCli(
-      ["node", "asc", "api", "get", "/v1/apps", "--json"],
+      ["node", "asc", "api", "get", "/v1/apps"],
       { ...io, env: createAuthEnv(), fetchImpl }
     );
 
@@ -388,7 +358,7 @@ describe("asc CLI", () => {
     const fetchImpl = (async () => response) as typeof fetch;
 
     const exitCode = await runCli(
-      ["node", "asc", "api", "get", "/v1/apps", "--json"],
+      ["node", "asc", "api", "get", "/v1/apps"],
       { ...io, env: createAuthEnv(), fetchImpl }
     );
 
@@ -406,7 +376,7 @@ describe("asc CLI", () => {
       })) as typeof fetch;
 
     const exitCode = await runCli(
-      ["node", "asc", "api", "get", "/v1/apps", "--json"],
+      ["node", "asc", "api", "get", "/v1/apps"],
       { ...io, env: createAuthEnv(), fetchImpl }
     );
 
@@ -439,26 +409,19 @@ describe("asc CLI", () => {
       })) as typeof fetch;
 
     const exitCode = await runCli(
-      ["node", "asc", "api", "post", "/v1/analyticsReportRequests", "--body", "{}", "--json"],
+      ["node", "asc", "api", "post", "/v1/analyticsReportRequests", "--body", "{}"],
       { ...io, env: createAuthEnv(), fetchImpl }
     );
 
     expect(exitCode).toBe(2);
     expect(JSON.parse(io.stdoutText)).toEqual(payload);
     expect(io.stdoutText).toContain(detail);
-    expect(JSON.parse(io.stderrText)).toMatchObject({
-      ok: false,
-      error: {
-        code: "ASC_API_REQUEST_FAILED",
-        message: "App Store Connect API request failed with HTTP 422.",
-        details: {
-          status: 422,
-          statusText: "Unprocessable Entity",
-          hint: "The full response body was emitted on stdout."
-        }
-      }
-    });
-    expect(JSON.parse(io.stderrText).error.details.body).toBeUndefined();
+    expect(io.stderrText).toContain(
+      "ASC_API_REQUEST_FAILED: App Store Connect API request failed with HTTP 422."
+    );
+    expect(io.stderrText).toContain('"statusText": "Unprocessable Entity"');
+    expect(io.stderrText).toContain('"hint": "The full response body was emitted on stdout."');
+    expect(io.stderrText).not.toContain(detail);
   });
 
   it("emits non-2xx API download response bodies on stdout without writing the output file", async () => {
@@ -482,7 +445,7 @@ describe("asc CLI", () => {
       })) as typeof fetch;
 
     const exitCode = await runCli(
-      ["node", "asc", "api", "download", "/v1/salesReports", "--out", outputPath, "--json"],
+      ["node", "asc", "api", "download", "/v1/salesReports", "--out", outputPath],
       { ...io, env: createAuthEnv(), fetchImpl }
     );
 
@@ -511,8 +474,7 @@ describe("asc CLI", () => {
         "--query",
         "filter[frequency]=DAILY",
         "--out",
-        outputPath,
-        "--json"
+        outputPath
       ],
       { ...io, env: createAuthEnv(), fetchImpl }
     );

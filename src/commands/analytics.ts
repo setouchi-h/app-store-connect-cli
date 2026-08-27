@@ -15,8 +15,7 @@ import type { CliContext } from "./context.js";
 
 export function registerAnalyticsCommand(program: Command, context: CliContext): void {
   const analytics = new Command("analytics")
-    .description("App Analytics report commands (Analytics Reports API).")
-    .option("--json", "Emit JSON output.");
+    .description("App Analytics report commands (Analytics Reports API).");
 
   const request = new Command("request").description(
     "Manage analytics report generation requests."
@@ -29,7 +28,6 @@ export function registerAnalyticsCommand(program: Command, context: CliContext):
     )
     .option("--app <appId>", "App Store Connect app ID. Defaults to ASC_APP_ID.")
     .option("--access-type <type>", "ONGOING or ONE_TIME_SNAPSHOT.", "ONGOING")
-    .option("--json", "Emit JSON output.")
     .action(async (options: Record<string, unknown>) => {
       const parsed = EnsureAnalyticsRequestOptionsSchema.parse({
         app: options["app"],
@@ -46,7 +44,6 @@ export function registerAnalyticsCommand(program: Command, context: CliContext):
     .command("list")
     .description("List analytics report requests for an app.")
     .option("--app <appId>", "App Store Connect app ID. Defaults to ASC_APP_ID.")
-    .option("--json", "Emit JSON output.")
     .action(async (options: Record<string, unknown>) => {
       const parsed = ListAnalyticsRequestsOptionsSchema.parse({
         app: options["app"]
@@ -66,7 +63,6 @@ export function registerAnalyticsCommand(program: Command, context: CliContext):
     .option("--app <appId>", "App Store Connect app ID. Defaults to ASC_APP_ID.")
     .option("--access-type <type>", "ONGOING or ONE_TIME_SNAPSHOT.", "ONGOING")
     .option("--category <category>", "Filter by report category, e.g. APP_STORE_ENGAGEMENT.")
-    .option("--json", "Emit JSON output.")
     .action(async (options: Record<string, unknown>) => {
       const parsed = ListAnalyticsReportsOptionsSchema.parse({
         app: options["app"],
@@ -95,7 +91,6 @@ export function registerAnalyticsCommand(program: Command, context: CliContext):
     .option("--granularity <granularity>", "DAILY, WEEKLY, or MONTHLY.", "DAILY")
     .requiredOption("--from <date>", "Start date in YYYY-MM-DD format.")
     .requiredOption("--to <date>", "End date in YYYY-MM-DD format.")
-    .option("--json", "Emit JSON output.")
     .action(async (options: Record<string, unknown>) => {
       const parsed = FetchAnalyticsOptionsSchema.parse({
         app: options["app"],

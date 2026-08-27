@@ -15,7 +15,7 @@ JSON on stdout. Diagnostics and errors go to stderr (errors always include a `co
 `details`, when present, may carry a `hint` — read them before retrying).
 
 Run commands with `pnpm dev -- <args>` in this repo (or `asc <args>` if the built
-binary is installed). Always pass `--json`.
+binary is installed).
 
 ## Setup expectations
 
@@ -37,18 +37,18 @@ report what is missing.
 
 ```sh
 # Sales: daily downloads & revenue, saved as reports/sales-summary-<date>.tsv(.gz)
-pnpm dev -- reports fetch --from 2026-06-01 --to 2026-06-07 --json
+pnpm dev -- reports fetch --from 2026-06-01 --to 2026-06-07
 
 # Analytics: one-time setup per app (idempotent, safe to re-run)
-pnpm dev -- apps list --json                       # find the app ID
-pnpm dev -- analytics request ensure --app <id> --json
+pnpm dev -- apps list                       # find the app ID
+pnpm dev -- analytics request ensure --app <id>
 
 # Discover exact report names (pass to --report verbatim)
-pnpm dev -- analytics reports --app <id> --json
+pnpm dev -- analytics reports --app <id>
 
 # Fetch report files, saved as reports/analytics-<report>-<granularity>-<date>-<n>.tsv
 pnpm dev -- analytics fetch --app <id> --report "App Store Discovery and Engagement Standard" \
-  --from 2026-06-01 --to 2026-06-07 --json
+  --from 2026-06-01 --to 2026-06-07
 ```
 
 Analytics files are decompressed tab-separated text with a header row; aggregate them

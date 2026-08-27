@@ -138,8 +138,7 @@ describe("asc analytics CLI", () => {
         "--from",
         "2026-06-01",
         "--to",
-        "2026-06-07",
-        "--json"
+        "2026-06-07"
       ],
       { ...io, env: await createEnv(), fetchImpl: createFetchStub(happyPathHandler()) }
     );
@@ -169,8 +168,7 @@ describe("asc analytics CLI", () => {
         "--from",
         "2026-06-01",
         "--to",
-        "2026-06-07",
-        "--json"
+        "2026-06-07"
       ],
       {
         ...io,
@@ -190,7 +188,7 @@ describe("asc analytics CLI", () => {
 
   it("lists report requests through the CLI using the ASC_APP_ID default", async () => {
     const io = createWriters();
-    const exitCode = await runCli(["node", "asc", "analytics", "request", "list", "--json"], {
+    const exitCode = await runCli(["node", "asc", "analytics", "request", "list"], {
       ...io,
       env: await createEnv(),
       fetchImpl: createFetchStub(happyPathHandler())
@@ -208,17 +206,14 @@ describe("asc analytics CLI", () => {
 
     delete env["ASC_APP_ID"];
 
-    const exitCode = await runCli(["node", "asc", "analytics", "request", "list", "--json"], {
+    const exitCode = await runCli(["node", "asc", "analytics", "request", "list"], {
       ...io,
       env
     });
 
     expect(exitCode).toBe(2);
     expect(io.stdoutText).toBe("");
-    expect(JSON.parse(io.stderrText)).toMatchObject({
-      ok: false,
-      error: { code: "ASC_APP_ID_REQUIRED" }
-    });
+    expect(io.stderrText).toContain("ASC_APP_ID_REQUIRED:");
   });
 
   it("validates fetch options before loading credentials", async () => {
@@ -236,18 +231,14 @@ describe("asc analytics CLI", () => {
         "--from",
         "not-a-date",
         "--to",
-        "2026-06-07",
-        "--json"
+        "2026-06-07"
       ],
       { ...io, env: {} }
     );
 
     expect(exitCode).toBe(2);
     expect(io.stdoutText).toBe("");
-    expect(JSON.parse(io.stderrText)).toMatchObject({
-      ok: false,
-      error: { code: "VALIDATION_FAILED" }
-    });
+    expect(io.stderrText).toContain("VALIDATION_FAILED:");
   });
 
   it("rejects a date range where from is after to", async () => {
@@ -265,8 +256,7 @@ describe("asc analytics CLI", () => {
         "--from",
         "2026-06-07",
         "--to",
-        "2026-06-01",
-        "--json"
+        "2026-06-01"
       ],
       { ...io, env: {} }
     );
@@ -292,17 +282,13 @@ describe("asc analytics CLI", () => {
         "--from",
         "2026-06-01",
         "--to",
-        "2026-06-07",
-        "--json"
+        "2026-06-07"
       ],
       { ...io, env: {} }
     );
 
     expect(exitCode).toBe(2);
-    expect(JSON.parse(io.stderrText)).toMatchObject({
-      ok: false,
-      error: { code: "VALIDATION_FAILED" }
-    });
+    expect(io.stderrText).toContain("VALIDATION_FAILED:");
   });
 
   it("rejects an invalid access type on request ensure", async () => {
@@ -317,16 +303,12 @@ describe("asc analytics CLI", () => {
         "--app",
         "app-1",
         "--access-type",
-        "BOGUS",
-        "--json"
+        "BOGUS"
       ],
       { ...io, env: {} }
     );
 
     expect(exitCode).toBe(2);
-    expect(JSON.parse(io.stderrText)).toMatchObject({
-      ok: false,
-      error: { code: "VALIDATION_FAILED" }
-    });
+    expect(io.stderrText).toContain("VALIDATION_FAILED:");
   });
 });

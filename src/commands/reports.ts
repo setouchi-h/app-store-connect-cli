@@ -9,13 +9,11 @@ import type { CliContext } from "./context.js";
 
 export function registerReportsCommand(program: Command, context: CliContext): void {
   const reports = new Command("reports")
-    .description("Sales and Trends report commands.")
-    .option("--json", "Emit JSON output.");
+    .description("Sales and Trends report commands.");
 
   reports
     .command("list")
     .description("List supported report definitions.")
-    .option("--json", "Emit JSON output.")
     .action(async () => {
       writeJson(context.stdout, {
         reports: listSupportedReports()
@@ -27,7 +25,6 @@ export function registerReportsCommand(program: Command, context: CliContext): v
     .description("Fetch raw Sales and Trends reports.")
     .requiredOption("--from <date>", "Start date in YYYY-MM-DD format.")
     .requiredOption("--to <date>", "End date in YYYY-MM-DD format.")
-    .option("--json", "Emit JSON output.")
     .action(async (options: Record<string, unknown>) => {
       const parsedOptions = FetchReportOptionsSchema.parse(options);
       const config = loadReportsConfig(context.env);

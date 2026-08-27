@@ -19,7 +19,3 @@ export const DateRangeSchema = z
       });
     }
   });
-
-export const JsonOptionSchema = z.object({
-  json: z.boolean().default(false)
-});
